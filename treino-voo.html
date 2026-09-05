@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070b0f">
+<title>Guided Training — Briefing & Debrief PP</title>
+<style>
+/* =====================================================================
+   GUIDED TRAINING v2 — EFB de bolso
+   Escuro, tipografia de instrumento, feito para celular ao lado do console.
+   ===================================================================== */
+:root{
+  color-scheme: dark;
+  --fundo:#070b0f; --painel:#0e151c; --painel2:#131d26; --linha:#1e2b38;
+  --texto:#cfe3f2; --apagado:#7d97aa;
+  --verde:#24e07a; --ambar:#ffb020; --vermelho:#ff4d4d; --ciano:#35c4ff;
+  --mono: ui-monospace,"Cascadia Mono","Roboto Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--fundo);min-height:100%}
+body{
+  font-family:var(--mono); color:var(--texto); font-size:15px; line-height:1.5;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  background:radial-gradient(900px 420px at 50% -8%,#10202c 0%,transparent 62%),var(--fundo);
+}
+h1,h2,h3{margin:0;font-weight:600}
+button{font-family:var(--mono);cursor:pointer}
+
+/* ---------- topo ---------- */
+.topo{
+  position:sticky;top:0;z-index:20;background:rgba(14,21,28,.96);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--linha);
+  padding:10px 14px calc(10px);
+}
+.topo-l1{display:flex;align-items:center;gap:10px}
+.marca{font-size:13px;letter-spacing:2.5px;color:var(--ciano);font-weight:700}
+.marca span{color:var(--apagado)}
+.nuvem{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:10px;color:var(--apagado);
+  border:1px solid var(--linha);border-radius:20px;padding:4px 10px;background:var(--painel2)}
+.led{width:7px;height:7px;border-radius:50%;background:var(--ambar)}
+.nuvem.ok .led{background:var(--verde)} .nuvem.off .led{background:var(--vermelho)}
+
+.seletores{display:flex;gap:8px;margin-top:10px}
+select{
+  flex:1;background:var(--painel2);color:var(--texto);border:1px solid var(--linha);
+  border-radius:8px;padding:10px;font-family:var(--mono);font-size:14px;min-width:0;
+}
+
+/* ---------- abas inferiores ---------- */
+.abas{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);
+  background:rgba(14,21,28,.98);border-top:1px solid var(--linha);
+  padding-bottom:env(safe-area-inset-bottom);backdrop-filter:blur(8px);
+}
+.abas button{
+  background:none;border:0;color:var(--apagado);padding:13px 4px 15px;font-size:11px;
+  letter-spacing:1.5px;border-top:2px solid transparent;
+}
+.abas button.on{color:var(--ciano);border-top-color:var(--ciano);background:rgba(53,196,255,.06)}
+.abas b{display:block;font-size:17px;margin-bottom:3px;font-weight:400}
+
+/* ---------- blocos ---------- */
+.tela{padding:14px;display:none} .tela.on{display:block}
+.card{background:var(--painel);border:1px solid var(--linha);border-radius:12px;padding:15px;margin-bottom:12px}
+.rot{font-size:10px;letter-spacing:2px;color:var(--apagado);margin-bottom:9px}
+.tag{display:inline-block;font-size:10px;letter-spacing:1px;padding:3px 9px;border-radius:12px;
+  background:var(--painel2);border:1px solid var(--linha);color:var(--apagado);margin:2px 4px 2px 0}
+.tag.acs{color:var(--ciano);border-color:#1d4b63}
+.tag.aviso{color:var(--ambar);border-color:#5a4310}
+
+.titulo-manobra{font-size:19px;margin-bottom:8px;line-height:1.25}
+.sub{color:var(--apagado);font-size:13px}
+
+ol.passos{margin:0;padding-left:22px} ol.passos li{margin-bottom:9px}
+ul.erros{margin:0;padding-left:20px} ul.erros li{margin-bottom:8px;color:#e8d9b4}
+
+.tol{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--linha)}
+.tol:last-child{border-bottom:0}
+.tol .lb{flex:1;min-width:0}
+.tol .lb b{display:block;font-weight:500;font-size:14px}
+.tol .lb small{color:var(--apagado);font-size:11px}
+.tol .vl{font-size:17px;color:var(--verde);white-space:nowrap;font-weight:600}
+
+.aviso-box{border-left:3px solid var(--ambar);background:#1d1704;color:#ffd684;
+  padding:11px 13px;border-radius:8px;font-size:13px;margin-top:12px}
+.nota-fonte{border-left:3px solid var(--ciano);background:#08202b;color:#a9d9ef;
+  padding:11px 13px;border-radius:8px;font-size:12px;margin-top:12px}
+.futuro{border-left:3px solid #7a5cff;background:#120e26;color:#c3b6ff;
+  padding:11px 13px;border-radius:8px;font-size:12px}
+
+/* ---------- debrief ---------- */
+.item{background:var(--painel);border:1px solid var(--linha);border-left:3px solid var(--apagado);
+  border-radius:10px;padding:13px;margin-bottom:10px}
+.item.dentro{border-left-color:var(--verde)}
+.item.fora{border-left-color:var(--vermelho)}
+.item .cab{display:flex;gap:10px;align-items:baseline;margin-bottom:4px}
+.item .cab b{font-size:14px;font-weight:500;flex:1}
+.item .cab i{font-style:normal;font-size:13px;color:var(--ciano);white-space:nowrap}
+.item .fon{font-size:10px;color:var(--apagado);margin-bottom:10px}
+.opts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.opts button{
+  background:var(--painel2);border:1px solid var(--linha);color:var(--apagado);
+  border-radius:8px;padding:11px 4px;font-size:12px;
+}
+.opts button.sel[data-v="dentro"]{background:rgba(36,224,122,.16);border-color:var(--verde);color:var(--verde)}
+.opts button.sel[data-v="fora"]{background:rgba(255,77,77,.14);border-color:var(--vermelho);color:var(--vermelho)}
+.opts button.sel[data-v="na"]{background:var(--linha);color:var(--texto)}
+.desvio{margin-top:9px;display:none}
+.item.fora .desvio{display:block}
+input[type=text],input[type=date],input[type=number],textarea{
+  width:100%;background:var(--painel2);border:1px solid var(--linha);border-radius:8px;
+  color:var(--texto);padding:10px;font-family:var(--mono);font-size:14px;
+}
+textarea{min-height:92px;resize:vertical}
+
+.btn{width:100%;padding:15px;border-radius:10px;border:1px solid var(--linha);
+  background:var(--painel2);color:var(--texto);font-size:14px;margin-top:10px}
+.btn.pri{background:var(--ciano);color:#04121b;border-color:var(--ciano);font-weight:700}
+.btn:disabled{opacity:.45}
+
+.resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.resumo div{background:var(--painel2);border:1px solid var(--linha);border-radius:10px;padding:13px 6px;text-align:center}
+.resumo b{display:block;font-size:26px;color:var(--ciano)}
+.resumo span{font-size:9px;letter-spacing:1px;color:var(--apagado)}
+
+/* ---------- evolução ---------- */
+.ev{background:var(--painel);border:1px solid var(--linha);border-radius:12px;padding:13px;margin-bottom:10px}
+.ev-cab{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.ev-cab b{flex:1;font-size:14px;font-weight:500}
+.pill{font-size:9px;letter-spacing:1px;padding:4px 9px;border-radius:11px;white-space:nowrap}
+.pill.bom{background:rgba(36,224,122,.15);color:var(--verde)}
+.pill.rep{background:rgba(255,77,77,.13);color:var(--vermelho)}
+.pill.novo{background:var(--linha);color:var(--apagado)}
+.barras{display:flex;align-items:flex-end;gap:4px;height:46px;margin-bottom:8px}
+.barras i{flex:1;max-width:26px;background:var(--ciano);border-radius:3px 3px 0 0;min-height:3px;opacity:.85}
+.barras i.nok{background:var(--vermelho)}
+.ev small{color:var(--apagado);font-size:11px;display:block}
+.vazio{text-align:center;color:var(--apagado);padding:40px 16px}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:50;
+  background:var(--painel2);border:1px solid var(--ciano);border-radius:9px;padding:11px 18px;
+  font-size:13px;max-width:88vw;text-align:center;display:none}
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <div class="topo-l1">
+    <div class="marca">GUIDED<span>TRAINING</span></div>
+    <div class="nuvem" id="nuvem"><i class="led"></i><span id="nuvem-txt">verificando</span></div>
+  </div>
+  <div class="seletores">
+    <select id="sel-aeronave"></select>
+    <select id="sel-manobra"></select>
+  </div>
+</div>
+
+<div class="tela on" id="tela-briefing"></div>
+<div class="tela" id="tela-debrief"></div>
+<div class="tela" id="tela-evolucao"></div>
+
+<nav class="abas">
+  <button class="on" data-t="briefing"><b>◈</b>BRIEFING</button>
+  <button data-t="debrief"><b>✓</b>DEBRIEF</button>
+  <button data-t="evolucao"><b>▤</b>EVOLUÇÃO</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   1. CONEXÃO COM O BANCO
+   ---------------------------------------------------------------------
+   Falamos direto com a API REST do Supabase (PostgREST) via fetch — sem
+   biblioteca externa, para o app continuar sendo UM arquivo só.
+   A chave abaixo é a PÚBLICA: pode ficar visível, ela só faz o que as
+   regras da tabela permitirem.
+   ===================================================================== */
+const SUPA_URL  = 'https://pwtadrvycwrdzmdydxkz.supabase.co';
+const SUPA_KEY  = 'sb_publishable_GApBo8b3LGJLMhjiDhvuZw_cp-onYXY';
+const TABELA    = 'gt_debriefs';
+
+const cabecalhos = {
+  'apikey': SUPA_KEY,
+  'Authorization': 'Bearer ' + SUPA_KEY,
+  'Content-Type': 'application/json'
+};
+
+let nuvemOk = null;   // null = ainda não sabemos
+
+async function nuvemGravar(registro){
+  const r = await fetch(SUPA_URL + '/rest/v1/' + TABELA, {
+    method:'POST', headers:{...cabecalhos, 'Prefer':'return=representation'},
+    body: JSON.stringify([registro])
+  });
+  if(!r.ok) throw new Error('HTTP ' + r.status + ' — ' + (await r.text()).slice(0,160));
+  return (await r.json())[0];
+}
+
+async function nuvemLer(){
+  const r = await fetch(SUPA_URL + '/rest/v1/' + TABELA +
+    '?select=*&order=data_voo.desc,criado_em.desc&limit=500', {headers:cabecalhos});
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  return await r.json();
+}
+
+/* ---------------------------------------------------------------------
+   Guarda local (o app funciona sem internet; sincroniza quando dá).
+   Tudo em try/catch: em algumas situações o navegador bloqueia o
+   armazenamento e não queremos que o app quebre por causa disso.
+   ------------------------------------------------------------------- */
+const LS = {
+  ler(chave, padrao){ try{ const v = localStorage.getItem(chave); return v ? JSON.parse(v) : padrao; }catch(e){ return padrao; } },
+  gravar(chave, valor){ try{ localStorage.setItem(chave, JSON.stringify(valor)); }catch(e){} }
+};
+
+/* =====================================================================
+   2. AERONAVES — velocidades do POH
+   Fonte: POH Cessna 172S / POH Cirrus SR22 P/N 13772-001 (3400 lb)
+   Itens em "verificar" NÃO são de POH: são convenção de escola.
+   ===================================================================== */
+const AERONAVES = {
+  c172s:{
+    id:'c172s', nome:'Cessna 172S', nomeLongo:'Cessna 172S Skyhawk SP (180 hp, 2550 lb)',
+    fonte:'POH Cessna 172S',
+    v:{ vso:40, vs1:48, vr:55, vx:62, vy:74, vglide:68, va:105,
+        vfe10:110, vfe30:85, vno:129, vne:163,
+        subida:80, aproximacao:65, aproxCurta:61, curvaEscarpada:95,
+        downwind:90, base:80, vooLento:55 },
+    verificar:['downwind','base','vooLento'],
+    flaps:'graus (0 / 10 / 20 / 30)',
+    notas:[
+      'Parafuso é aprovado na categoria utilitária (banco traseiro e bagageiro vazios).',
+      'Faixa normal do tacômetro ao nível do mar: 2100–2500 RPM.'
+    ]
+  },
+  sr22:{
+    id:'sr22', nome:'Cirrus SR22', nomeLongo:'Cirrus SR22, 3400 lb (G1/G2/G3)',
+    fonte:'POH Cirrus SR22 P/N 13772-001 + Flight Operations Manual SR20/SR22',
+    v:{ vso:59, vs1:70, vr:70, vx:78, vy:101, vglide:88, va:133,
+        vfe50:119, vfe100:104, vno:178, vne:201, vpd:133,
+        subida:115, aproximacao:82, aproxCurta:77, curvaEscarpada:120,
+        downwind:100, base:90, vooLento:80 },
+    verificar:['curvaEscarpada','vooLento'],
+    flaps:'porcentagem (0 / 50% / 100%)',
+    notas:[
+      'Parafuso é PROIBIDO. A aeronave não foi certificada para recuperação de parafuso.',
+      'Doutrina Cirrus: saiu de voo controlado, aciona o CAPS (até 133 KIAS a 3400 lb).',
+      'Com flaps 50% ou 100% o limite de fator de carga cai para +1,9 g / 0 g.',
+      'Asa com "cuff": o estol começa pela raiz, os ailerons continuam eficazes e o aviso aerodinâmico é mais fraco que no 172.',
+      'Se você voa o G5/G6 (3600 lb) os números mudam: Va 140, Vfe 50% = 150, Vso 64, Vglide 92.'
+    ]
+  }
+};
+
+/* =====================================================================
+   3. MANOBRAS — o syllabus
+   Tolerâncias do FAA Private Pilot ACS (FAA-S-ACS-6C, nov/2023).
+   confianca:'alta'  = lido no texto oficial do ACS
+   confianca:'media' = fontes secundárias coerentes; conferir págs. 46-51
+   ===================================================================== */
+const MANOBRAS = [
+{
+  id:'voo_reto_nivelado', nome:'Voo reto e nivelado', area:'Aquecimento',
+  acs:'PA.VIII.A', confianca:'media',
+  objetivo:'Manter altitude, proa e velocidade constantes por 2 minutos. É a base de todo o resto — se isso não está firme, nenhuma outra manobra fica.',
+  procedimento:p=>[
+    'Estabilize em cruzeiro na potência normal.',
+    'Escolha uma altitude e uma proa. Diga em voz alta quais são — memorizar de verdade evita metade dos erros.',
+    'Trime até o avião voar sozinho. Se você está segurando força no manche, está errado.',
+    'Varredura: fora (horizonte) → altímetro → proa → velocidade → fora. Não fique preso no painel.',
+    'Corrija cedo e pouco. Desvio de 20 ft se corrige com pressão de dedo, não com movimento de braço.'
+  ],
+  tolerancias:[
+    {id:'altitude', label:'Altitude', texto:'±200 ft', fonte:'PA.VIII.A.S3'},
+    {id:'proa',     label:'Proa',     texto:'±20°',    fonte:'PA.VIII.A.S3'},
+    {id:'velocidade',label:'Velocidade',texto:'±10 kt',fonte:'PA.VIII.A.S3'}
+  ],
+  erros:[
+    'Voar destrimado e "segurar" a altitude no braço — cansa e o desvio volta assim que você distrai.',
+    'Corrigir altitude com o manche sem ajustar potência, e acabar trocando altitude por velocidade.',
+    'Olhar só para o painel. A referência primária no VFR é o horizonte.',
+    'Corrigir demais: puxar 200 ft para recuperar 50.'
+  ]
+},
+{
+  id:'curva_escarpada', nome:'Curva de grande inclinação', area:'ACS Área V.A',
+  acs:'PA.V.A', confianca:'alta',
+  objetivo:'Curva de 360° com 45° de inclinação mantendo altitude e velocidade. Ensina a sentir que, com bank alto, sustentação vertical some e precisa ser compensada.',
+  procedimento:p=>[
+    'Curvas de segurança (clearing turns). Olhe ao redor e acima antes.',
+    'Nivele a ' + p.v.curvaEscarpada + ' KIAS — velocidade de entrada do ' + p.nome + '.',
+    'Memorize altitude e proa de entrada. Escolha uma referência no horizonte.',
+    'Role para 45° coordenado. Ao passar de 30°, acrescente potência e comece a puxar.',
+    'Mantenha a referência: a distância entre o nariz e o horizonte é o que segura a altitude.',
+    'Comece a nivelar cerca de 20° antes da proa de entrada — o avião não para na hora.'
+  ],
+  tolerancias:[
+    {id:'inclinacao', label:'Inclinação',   texto:'45° ±5°',  fonte:'PA.V.A.S3'},
+    {id:'altitude',   label:'Altitude',     texto:'±100 ft',  fonte:'PA.V.A.S5'},
+    {id:'velocidade', label:'Velocidade',   texto:'±10 kt',   fonte:'PA.V.A.S5'},
+    {id:'proa_saida', label:'Proa ao nivelar', texto:'±10°',  fonte:'PA.V.A.S5'}
+  ],
+  erros:[
+    'Perder altitude na primeira metade da curva: entrou sem acrescentar potência e sem puxar o suficiente.',
+    'Ganhar altitude na segunda metade: puxou demais e esqueceu de reduzir a potência extra ao sair.',
+    'Deixar a inclinação crescer sozinha além de 45° — em bank alto o avião tem tendência de rolar para dentro.',
+    'Nivelar em cima da proa de entrada em vez de antecipar, e passar direto.',
+    'Ficar descoordenado (bola fora do centro) por não usar o pé na entrada e na saída.'
+  ]
+},
+{
+  id:'subida_vel_constante', nome:'Subida com velocidade constante', area:'ACS Área VIII.B',
+  acs:'PA.VIII.B', confianca:'media',
+  objetivo:'Subir 1.000 ft mantendo Vy e a proa, nivelando na altitude combinada.',
+  procedimento:p=>[
+    'Anote a altitude atual. Você vai subir 1.000 ft a partir dela.',
+    'Potência de subida, nariz para a atitude de subida, estabilize em Vy = ' + p.v.vy + ' KIAS.',
+    'Com potência alta o avião guina para a esquerda. Use o pé direito e mantenha a bola centrada.',
+    'Trime. Uma subida destrimada nunca fica estável.',
+    'Nivele antecipando 10% da razão de subida (700 fpm → comece 70 ft antes).',
+    'Ao nivelar: atitude primeiro, deixe acelerar, e só então reduza a potência.'
+  ],
+  tolerancias:[
+    {id:'velocidade',     label:'Velocidade (Vy)',        texto:'±10 kt',  fonte:'PA.VIII.B.S3'},
+    {id:'proa',           label:'Proa',                   texto:'±20°',    fonte:'PA.VIII.B.S3'},
+    {id:'altitude_final', label:'Nivelar na altitude alvo', texto:'±200 ft', fonte:'PA.VIII.B.S3'}
+  ],
+  erros:[
+    'Nariz alto demais: a velocidade cai abaixo de Vy e a razão de subida piora, não melhora.',
+    'Não compensar a guinada e sair da proa sem perceber.',
+    'Nivelar em cima da altitude alvo e passar 150 ft por inércia.',
+    'Reduzir potência antes de acelerar ao nivelar, e ficar arrastado.'
+  ]
+},
+{
+  id:'descida_vel_constante', nome:'Descida com velocidade constante', area:'ACS Área VIII.C',
+  acs:'PA.VIII.C', confianca:'media',
+  objetivo:'Descer 1.000 ft mantendo velocidade e proa, nivelando na altitude combinada.',
+  procedimento:p=>[
+    'Anote a altitude atual. Você vai descer 1.000 ft.',
+    'Reduza a potência e estabeleça cerca de 500 fpm de descida a ' + p.v.subida + ' KIAS.',
+    'Trime. A descida só fica estável quando trimada.',
+    'Mantenha a proa e a varredura.',
+    'Nivele 50 ft antes do alvo: potência primeiro, atitude depois.'
+  ],
+  tolerancias:[
+    {id:'velocidade',     label:'Velocidade',             texto:'±10 kt',  fonte:'PA.VIII.C.S3'},
+    {id:'proa',           label:'Proa',                   texto:'±20°',    fonte:'PA.VIII.C.S3'},
+    {id:'altitude_final', label:'Nivelar na altitude alvo', texto:'±200 ft', fonte:'PA.VIII.C.S3'}
+  ],
+  erros:[
+    'Deixar a velocidade crescer: nariz baixo demais, descida virando mergulho leve.',
+    'Descer com potência zerada quando o exercício pede descida com velocidade constante.',
+    'Nivelar tarde e afundar abaixo do alvo.',
+    'Esquecer o aquecimento do carburador / gestão de motor na descida prolongada.'
+  ]
+},
+{
+  id:'voo_lento', nome:'Voo lento', area:'ACS Área VII.A',
+  acs:'PA.VII.A', confianca:'alta',
+  objetivo:'Voar na menor velocidade possível SEM disparar o aviso de estol, mantendo controle preciso. Ensina o avião no regime em que ele passa a maior parte do pouso.',
+  aviso:'Padrão ACS atual: o voo lento é feito ACIMA do aviso de estol. A buzina não pode tocar. (Mudou em 2016 — material antigo ensina o contrário.)',
+  procedimento:p=>[
+    'Curvas de segurança. Não desça abaixo de 1.500 ft AGL.',
+    'Reduza a potência mantendo a altitude. Deixe a velocidade cair devagar.',
+    'Vá estendendo os flaps conforme a velocidade entra na faixa permitida.',
+    'Alvo aproximado: ' + p.v.vooLento + ' KIAS — logo acima do aviso de estol.',
+    'Ajuste a potência até estabilizar. Nesse regime é a POTÊNCIA que controla altitude e o NARIZ que controla velocidade.',
+    'Faça curvas suaves de 90° para os dois lados mantendo tudo dentro da tolerância.'
+  ],
+  tolerancias:[
+    {id:'altitude',   label:'Altitude',            texto:'±100 ft',  fonte:'PA.VII.A.S5'},
+    {id:'proa',       label:'Proa',                texto:'±10°',     fonte:'PA.VII.A.S5'},
+    {id:'velocidade', label:'Velocidade',          texto:'+10 / −0 kt', fonte:'PA.VII.A.S5'},
+    {id:'inclinacao', label:'Inclinação',          texto:'±10°',     fonte:'PA.VII.A.S5'},
+    {id:'sem_buzina', label:'Aviso de estol desligado', texto:'não pode tocar', fonte:'PA.VII.A.S3'}
+  ],
+  erros:[
+    'Deixar a buzina tocar — no padrão atual isso já é falha. Acrescente 2–3 kt.',
+    'Tentar segurar altitude só com o manche: nesse regime, puxar mais estola.',
+    'Perder o controle direcional nas curvas por falta de pé.',
+    'Estender flaps acima da Vfe do estágio.',
+    'Deixar a velocidade CAIR abaixo do alvo — a tolerância é +10/−0, não há folga para baixo.'
+  ]
+},
+{
+  id:'estol_sem_potencia', nome:'Estol sem potência (power-off)', area:'ACS Área VII.B',
+  acs:'PA.VII.B', confianca:'alta',
+  objetivo:'Reconhecer e recuperar do estol na configuração e atitude de aproximação final — o cenário em que o estol de verdade mata.',
+  aviso:'A recuperação SEMPRE começa reduzindo o ângulo de ataque. Potência vem depois, nunca antes.',
+  procedimento:p=>[
+    'Comece acima de 3.000 ft AGL: a recuperação tem que terminar acima de 1.500 ft AGL.',
+    'Curvas de segurança. Configure para pouso: flaps totais, potência de aproximação.',
+    'Estabilize numa descida como se fosse a final, a ' + p.v.aproximacao + ' KIAS.',
+    'Reduza para marcha lenta e levante o nariz suave e progressivamente.',
+    'Vá até o ESTOL COMPLETO (buffet + perda de sustentação), não pare na buzina.',
+    'Recupere: nariz abaixo → potência máxima → asas niveladas → flaps por etapas.',
+    'Minimize a perda de altitude, mas nunca à custa de puxar cedo demais.'
+  ],
+  tolerancias:[
+    {id:'proa',        label:'Proa (estol em voo reto)', texto:'±10°', fonte:'PA.VII.B.S6'},
+    {id:'inclinacao',  label:'Inclinação (estol em curva)', texto:'não exceder 20° ±10°', fonte:'PA.VII.B.S6'},
+    {id:'agl_minima',  label:'Altura ao terminar',      texto:'acima de 1.500 ft AGL', fonte:'PA.VII.B.S2'},
+    {id:'estol_completo', label:'Chegou ao estol completo', texto:'obrigatório', fonte:'PA.VII.B.S5'}
+  ],
+  erros:[
+    'Parar na buzina e chamar de estol. O ACS pede o estol completo.',
+    'Recuperar com potência antes de baixar o nariz — o avião continua estolado, só mais rápido.',
+    'Usar aileron para levantar a asa que cai em vez de leme: convite ao parafuso.',
+    'Recolher todos os flaps de uma vez logo na recuperação e voltar a estolar.',
+    'Iniciar baixo demais e terminar abaixo de 1.500 ft AGL.'
+  ]
+},
+{
+  id:'estol_com_potencia', nome:'Estol com potência (power-on)', area:'ACS Área VII.C',
+  acs:'PA.VII.C', confianca:'alta',
+  objetivo:'Reconhecer e recuperar do estol na atitude e potência de decolagem — o estol de saída de pista, com forte tendência de guinada.',
+  aviso:'Potência mínima de 65% durante a manobra. Recuperação: reduzir o ângulo de ataque primeiro, sempre.',
+  procedimento:p=>[
+    'Comece acima de 3.000 ft AGL. Curvas de segurança.',
+    'Reduza para a velocidade de decolagem, cerca de ' + p.v.vr + ' KIAS, com flaps de decolagem.',
+    'Aplique potência de subida (mínimo 65%) e levante o nariz para a atitude de subida e além.',
+    'Use pé firme: com potência alta e nariz alto o avião guina forte. A proa é critério avaliado.',
+    'Vá até o estol completo.',
+    'Recupere: nariz abaixo → potência máxima → asas niveladas com leme, não com aileron.'
+  ],
+  tolerancias:[
+    {id:'proa',       label:'Proa (estol em voo reto)', texto:'±10°', fonte:'PA.VII.C.S6'},
+    {id:'inclinacao', label:'Inclinação (estol em curva)', texto:'não exceder 20° ±10°', fonte:'PA.VII.C.S6'},
+    {id:'potencia',   label:'Potência aplicada',        texto:'mínimo 65%', fonte:'PA.VII.C.S4'},
+    {id:'agl_minima', label:'Altura ao terminar',       texto:'acima de 1.500 ft AGL', fonte:'PA.VII.C.S2'},
+    {id:'estol_completo', label:'Chegou ao estol completo', texto:'obrigatório', fonte:'PA.VII.C.S5'}
+  ],
+  erros:[
+    'Potência abaixo de 65% — vira outro exercício e reprova.',
+    'Não usar leme e sair 30° da proa sem perceber.',
+    'Deixar a asa cair e corrigir com aileron.',
+    'Nariz alto demais tarde demais, virando manobra desconfortável em vez de estol controlado.'
+  ]
+},
+{
+  id:'trafego_pouso', nome:'Tráfego e pouso estabilizado', area:'ACS Áreas III.B e IV.B',
+  acs:'PA.III.B / PA.IV.B', confianca:'alta',
+  objetivo:'Circuito na altitude e velocidade corretas, final estabilizada e toque no ponto escolhido.',
+  procedimento:p=>[
+    'Entre no tráfego na altitude publicada (normalmente 1.000 ft AGL).',
+    'Perna do vento: ' + p.v.downwind + ' KIAS, altura de tráfego constante.',
+    'Través do ponto de toque: reduza potência, primeiro estágio de flaps.',
+    'Base: ' + p.v.base + ' KIAS, mais flaps, comece a descida.',
+    'Final: ' + p.v.aproximacao + ' KIAS, flaps de pouso, razão de descida constante, eixo da pista.',
+    'Estabilizada até o flare: velocidade certa, razão constante, alinhado, potência ajustada.',
+    'Flare no ponto, toque com o trem principal primeiro, eixo alinhado, sem deriva.'
+  ],
+  tolerancias:[
+    {id:'altura_trafego', label:'Altura de tráfego', texto:'±100 ft', fonte:'PA.III.B.S5'},
+    {id:'vel_trafego',    label:'Velocidade no tráfego', texto:'±10 kt', fonte:'PA.III.B.S5'},
+    {id:'vel_final',      label:'Velocidade na final', texto:'+10 / −5 kt', fonte:'PA.IV.B.S7'},
+    {id:'ponto_toque',    label:'Ponto de toque', texto:'até 400 ft além do ponto', fonte:'PA.IV.B.S10'},
+    {id:'alinhamento',    label:'Eixo alinhado, sem deriva', texto:'obrigatório', fonte:'PA.IV.B.S10'}
+  ],
+  erros:[
+    'Downwind alto ou baixo, e passar o voo inteiro corrigindo o que devia ter sido resolvido ali.',
+    'Chegar rápido na final e "flutuar" metade da pista.',
+    'Corrigir alinhamento com aileron sem leme e tocar em deriva.',
+    'Flare alto e deixar o avião cair, ou flare baixo e tocar com a bequilha.',
+    'Não estabilizar até 400 ft e mesmo assim seguir para o pouso em vez de arremeter.'
+  ]
+}
+];
+
+/* =====================================================================
+   4. ESTADO E TELAS
+   ===================================================================== */
+let aeronaveId = LS.ler('gt2_aeronave','c172s');
+let manobraId  = LS.ler('gt2_manobra','curva_escarpada');
+let respostas  = {};        // id da tolerância -> {status, desvio}
+let historico  = [];
+
+const $  = id => document.getElementById(id);
+const perfil  = () => AERONAVES[aeronaveId];
+const manobra = () => MANOBRAS.find(m => m.id === manobraId) || MANOBRAS[0];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(msg, ms){
+  const t = $('toast'); t.textContent = msg; t.style.display='block';
+  clearTimeout(t._h); t._h = setTimeout(()=>{ t.style.display='none'; }, ms||3200);
+}
+
+/* ---------- seletores do topo ---------- */
+$('sel-aeronave').innerHTML = Object.values(AERONAVES).map(a=>
+  `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+$('sel-manobra').innerHTML = MANOBRAS.map(m=>
+  `<option value="${m.id}">${esc(m.nome)}</option>`).join('');
+$('sel-aeronave').value = aeronaveId;
+$('sel-manobra').value  = manobraId;
+
+$('sel-aeronave').onchange = e => {
+  aeronaveId = e.target.value; LS.gravar('gt2_aeronave', aeronaveId); desenharTudo();
+};
+$('sel-manobra').onchange = e => {
+  manobraId = e.target.value; LS.gravar('gt2_manobra', manobraId); respostas = {}; desenharTudo();
+};
+
+document.querySelectorAll('.abas button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.abas button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.tela').forEach(t=>t.classList.remove('on'));
+    $('tela-' + b.dataset.t).classList.add('on');
+    if(b.dataset.t === 'evolucao') carregarEvolucao();
+    window.scrollTo(0,0);
+  };
+});
+
+/* =====================================================================
+   5. MODO BRIEFING — o que ele lê ANTES de voar
+   ===================================================================== */
+function desenharBriefing(){
+  const m = manobra(), p = perfil();
+  // As notas da aeronave aparecem sempre; em estol e voo lento elas são o que
+  // mais muda entre o 172 e o SR22, então valem destaque de aviso.
+  const critica = m.id.startsWith('estol') || m.id === 'voo_lento';
+  const avisosAeronave = p.notas.length
+    ? `<div class="${critica ? 'aviso-box' : 'nota-fonte'}" style="margin-top:14px">
+         <b>${esc(p.nome)} — o que é diferente:</b><br>${p.notas.map(n=>'· '+esc(n)).join('<br>')}
+       </div>` : '';
+
+  $('tela-briefing').innerHTML = `
+    <div class="card">
+      <div class="titulo-manobra">${esc(m.nome)}</div>
+      <span class="tag">${esc(m.area)}</span>
+      <span class="tag acs">${esc(m.acs)}</span>
+      ${m.confianca === 'media' ? '<span class="tag aviso">conferir fonte</span>' : ''}
+      <p class="sub" style="margin:10px 0 0">${esc(m.objetivo)}</p>
+      ${m.aviso ? `<div class="aviso-box">⚠ ${esc(m.aviso)}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="rot">TOLERÂNCIAS</div>
+      ${m.tolerancias.map(t=>`
+        <div class="tol">
+          <div class="lb"><b>${esc(t.label)}</b><small>${esc(t.fonte)}</small></div>
+          <div class="vl">${esc(t.texto)}</div>
+        </div>`).join('')}
+      <div class="nota-fonte">
+        Números do <b>FAA Private Pilot ACS (FAA-S-ACS-6C, nov/2023)</b>.
+        A ANAC tem tolerâncias próprias na <b>IS 00-002 Rev. H, Apêndice C</b>, que é
+        eliminatória no exame brasileiro — mas aquela tabela ainda não foi extraída do
+        PDF oficial. Nenhum número da ANAC foi inventado aqui.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="rot">PROCEDIMENTO</div>
+      <ol class="passos">${m.procedimento(p).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+    </div>
+
+    <div class="card">
+      <div class="rot">ERROS TÍPICOS</div>
+      <ul class="erros">${m.erros.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>
+    </div>
+
+    <div class="card">
+      <div class="rot">${esc(p.nomeLongo.toUpperCase())}</div>
+      ${velocidadesRelevantes(m, p)}
+      <div class="tol"><div class="lb"><b>Flaps</b><small>${esc(p.fonte)}</small></div><div class="vl" style="font-size:13px">${esc(p.flaps)}</div></div>
+      ${avisosAeronave}
+    </div>`;
+}
+
+// Mostra só as velocidades que importam para a manobra escolhida.
+function velocidadesRelevantes(m, p){
+  const rot = {
+    vso:'Vso — estol, flaps totais', vs1:'Vs1 — estol, limpo', vr:'Vr — rotação',
+    vx:'Vx — melhor ângulo', vy:'Vy — melhor razão', vglide:'Vglide — melhor planeio',
+    va:'Va — manobra', subida:'Subida em cruzeiro', aproximacao:'Aproximação normal',
+    aproxCurta:'Aproximação curta', curvaEscarpada:'Entrada de curva escarpada',
+    downwind:'Perna do vento', base:'Base', vooLento:'Voo lento (alvo)',
+    vfe10:'Vfe 0→10°', vfe30:'Vfe 10→30°', vfe50:'Vfe 50%', vfe100:'Vfe 100%',
+    vno:'Vno', vne:'Vne', vpd:'Vpd — máx. para CAPS'
+  };
+  const porManobra = {
+    voo_reto_nivelado:['subida','va','vno'],
+    curva_escarpada:['curvaEscarpada','va','vno'],
+    subida_vel_constante:['vy','vx','subida'],
+    descida_vel_constante:['subida','vno','va'],
+    voo_lento:['vooLento','vs1','vso','vfe10','vfe30','vfe50','vfe100'],
+    estol_sem_potencia:['aproximacao','vso','vs1','vglide'],
+    estol_com_potencia:['vr','vx','vs1'],
+    trafego_pouso:['downwind','base','aproximacao','aproxCurta','vso','vfe10','vfe30','vfe50','vfe100']
+  };
+  const chaves = (porManobra[m.id] || []).filter(k => p.v[k] !== undefined);
+  return chaves.map(k=>`
+    <div class="tol">
+      <div class="lb"><b>${esc(rot[k]||k)}</b><small>${p.verificar.includes(k) ? '⚠ não é valor de POH — convenção, conferir' : esc(p.fonte)}</small></div>
+      <div class="vl">${p.v[k]} kt</div>
+    </div>`).join('');
+}
+
+/* =====================================================================
+   6. MODO DEBRIEF — autoavaliação depois do voo
+   ===================================================================== */
+function desenharDebrief(){
+  const m = manobra(), p = perfil();
+  const hoje = new Date().toISOString().slice(0,10);
+
+  $('tela-debrief').innerHTML = `
+    <div class="card">
+      <div class="rot">DEBRIEF — ${esc(m.nome.toUpperCase())}</div>
+      <div class="sub" style="margin-bottom:12px">${esc(p.nome)} · avalie cada item contra a tolerância do ACS. Seja honesto: um item marcado errado contamina o histórico inteiro.</div>
+      <input type="date" id="d-data" value="${hoje}">
+    </div>
+
+    <div id="d-itens">
+      ${m.tolerancias.map(t=>`
+        <div class="item" id="it-${t.id}">
+          <div class="cab"><b>${esc(t.label)}</b><i>${esc(t.texto)}</i></div>
+          <div class="fon">${esc(t.fonte)}</div>
+          <div class="opts" data-item="${t.id}">
+            <button data-v="dentro">Dentro</button>
+            <button data-v="fora">Fora</button>
+            <button data-v="na">Não avaliei</button>
+          </div>
+          <div class="desvio">
+            <input type="text" id="dv-${t.id}" placeholder="Qual foi o desvio? ex.: −180 ft, ou 'buzina tocou 3x'">
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="card">
+      <div class="rot">OBSERVAÇÕES DO VOO</div>
+      <textarea id="d-obs" placeholder="O que aconteceu, o que você sentiu, o que quer lembrar na próxima. Ex.: 'entrei rápido demais, tive que reduzir no meio da curva e perdi 150 ft'"></textarea>
+    </div>
+
+    <div class="resumo">
+      <div><b id="d-dentro">0</b><span>DENTRO</span></div>
+      <div><b id="d-fora">0</b><span>FORA</span></div>
+      <div><b id="d-indice">—</b><span>ÍNDICE</span></div>
+    </div>
+
+    <button class="btn pri" id="d-salvar">Salvar debrief</button>
+    <button class="btn" id="d-limpar">Limpar</button>
+
+    <div class="card" style="margin-top:16px">
+      <div class="futuro">
+        <b>ETAPA FUTURA — importação do Track Log Pro</b><br><br>
+        Quando você comprar o <b>Track Log Pro</b> (~US$ 14 na Marketplace, roda dentro
+        do sim e por isso funciona no Xbox), ele exporta o logbook em Excel e as trilhas
+        em KML, com sincronização por Dropbox. A ideia é importar aquele arquivo aqui e
+        preencher automaticamente os números objetivos — razão de descida no toque, IAS
+        e atitude no toque, desvio de altitude ao longo da manobra — no lugar da
+        autoavaliação.<br><br>
+        <b>Ainda não está implementado de propósito:</b> eu não vi o formato real do
+        arquivo. Assim que você comprar, exporte um voo qualquer e me mande o Excel —
+        aí a gente faz o leitor em cima do formato de verdade, não de um chute.
+      </div>
+    </div>`;
+
+  // botões de status de cada item
+  document.querySelectorAll('.opts').forEach(g=>{
+    g.querySelectorAll('button').forEach(b=>{
+      b.onclick = () => {
+        const id = g.dataset.item, v = b.dataset.v;
+        g.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));
+        b.classList.add('sel');
+        respostas[id] = { status:v };
+        const cx = $('it-'+id);
+        cx.classList.toggle('dentro', v==='dentro');
+        cx.classList.toggle('fora',   v==='fora');
+        atualizarResumo();
+      };
+    });
+  });
+
+  $('d-salvar').onclick = salvarDebrief;
+  $('d-limpar').onclick = () => { respostas = {}; desenharDebrief(); };
+  atualizarResumo();
+}
+
+function atualizarResumo(){
+  const m = manobra();
+  const vals = m.tolerancias.map(t => (respostas[t.id]||{}).status);
+  const dentro = vals.filter(v=>v==='dentro').length;
+  const fora   = vals.filter(v=>v==='fora').length;
+  const avaliados = dentro + fora;
+  $('d-dentro').textContent = dentro;
+  $('d-fora').textContent   = fora;
+  $('d-indice').textContent = avaliados ? Math.round(dentro/avaliados*100) : '—';
+  $('d-salvar').disabled = avaliados === 0;
+}
+
+async function salvarDebrief(){
+  const m = manobra(), p = perfil();
+
+  const itens = m.tolerancias.map(t=>({
+    id: t.id, label: t.label, tolerancia: t.texto, fonte: t.fonte,
+    status: (respostas[t.id]||{}).status || 'na',
+    desvio: (($('dv-'+t.id)||{}).value || '').trim() || null
+  }));
+
+  const dentro = itens.filter(i=>i.status==='dentro').length;
+  const fora   = itens.filter(i=>i.status==='fora').length;
+  const avaliados = dentro + fora;
+
+  const registro = {
+    data_voo: $('d-data').value || new Date().toISOString().slice(0,10),
+    manobra_id: m.id, manobra_nome: m.nome, referencia_acs: m.acs,
+    aeronave_id: p.id, aeronave_nome: p.nome,
+    itens, total_itens: itens.length, itens_dentro: dentro, itens_fora: fora,
+    indice: avaliados ? Math.round(dentro/avaliados*100) : 0,
+    aprovado: fora === 0 && avaliados > 0,
+    observacao: ($('d-obs').value||'').trim() || null,
+    origem: 'autoavaliacao'
+  };
+
+  // 1) guarda local sempre — nunca perdemos o debrief por causa de rede
+  const locais = LS.ler('gt2_locais', []);
+  locais.push({ ...registro, _local_id: Date.now(), _sincronizado: false });
+  LS.gravar('gt2_locais', locais);
+
+  // 2) tenta a nuvem
+  try{
+    await nuvemGravar(registro);
+    const l = LS.ler('gt2_locais', []);
+    if(l.length) l[l.length-1]._sincronizado = true;
+    LS.gravar('gt2_locais', l);
+    marcarNuvem(true);
+    toast('Debrief salvo no banco.');
+  }catch(e){
+    marcarNuvem(false);
+    toast('Sem conexão com o banco — salvo no aparelho. Sincroniza depois.', 4200);
+  }
+
+  respostas = {};
+  desenharDebrief();
+  carregarEvolucao();
+}
+
+/* Reenvia o que ficou preso no aparelho quando a rede voltar. */
+async function sincronizarPendentes(){
+  const locais = LS.ler('gt2_locais', []);
+  const pendentes = locais.filter(r=>!r._sincronizado);
+  if(!pendentes.length) return 0;
+  let n = 0;
+  for(const r of pendentes){
+    const { _local_id, _sincronizado, ...limpo } = r;
+    try{ await nuvemGravar(limpo); r._sincronizado = true; n++; }catch(e){ break; }
+  }
+  LS.gravar('gt2_locais', locais);
+  if(n) toast(n + ' debrief(s) pendente(s) enviado(s) ao banco.');
+  return n;
+}
+
+/* =====================================================================
+   7. MODO EVOLUÇÃO
+   ===================================================================== */
+async function carregarEvolucao(){
+  const alvo = $('tela-evolucao');
+  alvo.innerHTML = '<div class="vazio">Carregando…</div>';
+
+  let dados = [], origem = 'nuvem';
+  try{
+    await sincronizarPendentes();
+    dados = await nuvemLer();
+    marcarNuvem(true);
+  }catch(e){
+    marcarNuvem(false);
+    dados = LS.ler('gt2_locais', []);
+    origem = 'aparelho';
+  }
+  historico = dados;
+  desenharEvolucao(dados, origem);
+}
+
+function desenharEvolucao(dados, origem){
+  const porManobra = {};
+  for(const d of dados){
+    const k = d.manobra_id + '|' + d.aeronave_id;
+    (porManobra[k] = porManobra[k] || []).push(d);
+  }
+  // mais antigo primeiro dentro de cada grupo
+  Object.values(porManobra).forEach(g => g.sort((a,b)=>
+    (a.data_voo+String(a.criado_em||'')).localeCompare(b.data_voo+String(b.criado_em||''))));
+
+  const cartoes = [];
+
+  // 1) manobras já treinadas
+  for(const [k, g] of Object.entries(porManobra)){
+    const ult = g[g.length-1];
+    const ultimas3 = g.slice(-3);
+    const consistente = ultimas3.length >= 3 && ultimas3.every(x=>x.aprovado);
+
+    // qual item repete erro?
+    const conta = {};
+    for(const d of g) for(const i of (d.itens||[]))
+      if(i.status==='fora'){ conta[i.label] = (conta[i.label]||0)+1; }
+    const reincidentes = Object.entries(conta).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]);
+
+    const pill = consistente
+      ? '<span class="pill bom">CONSISTENTE</span>'
+      : reincidentes.length ? '<span class="pill rep">ERRO QUE REPETE</span>' : '';
+
+    cartoes.push(`
+      <div class="ev">
+        <div class="ev-cab"><b>${esc(ult.manobra_nome)}</b>${pill}</div>
+        <div class="barras">
+          ${g.slice(-14).map(d=>`<i class="${d.aprovado?'':'nok'}" style="height:${Math.max(6, d.indice||0)}%" title="${esc(d.data_voo)} — ${d.indice}/100"></i>`).join('')}
+        </div>
+        <small>${esc(AERONAVES[ult.aeronave_id]?.nome || ult.aeronave_id)} · ${g.length} treino(s) · último em ${esc(ult.data_voo)} · índice ${ult.indice}</small>
+        ${reincidentes.length ? `<small style="color:var(--vermelho);margin-top:6px">Repete: ${reincidentes.map(([l,n])=>esc(l)+' ('+n+'x)').join(', ')}</small>` : ''}
+        ${ult.observacao ? `<small style="margin-top:6px;color:var(--texto);opacity:.8">"${esc(ult.observacao)}"</small>` : ''}
+      </div>`);
+  }
+
+  // 2) manobras nunca treinadas
+  const treinadas = new Set(dados.map(d=>d.manobra_id));
+  const nunca = MANOBRAS.filter(m=>!treinadas.has(m.id));
+
+  $('tela-evolucao').innerHTML = `
+    ${origem === 'aparelho' ? '<div class="card"><div class="aviso-box">Sem conexão com o banco. Mostrando o que está guardado neste aparelho. Ao voltar a rede, os debriefs pendentes são enviados sozinhos.</div></div>' : ''}
+    ${cartoes.length ? cartoes.join('') : '<div class="vazio">Nenhum debrief ainda.<br><br>Voe uma manobra, volte aqui na aba DEBRIEF e registre. A evolução aparece a partir do segundo treino.</div>'}
+    ${nunca.length ? `
+      <div class="ev">
+        <div class="ev-cab"><b>Nunca treinadas</b><span class="pill novo">${nunca.length}</span></div>
+        ${nunca.map(m=>`<small>· ${esc(m.nome)}</small>`).join('')}
+      </div>` : ''}
+    ${dados.length ? `<button class="btn" id="ev-exportar">Exportar histórico (JSON)</button>` : ''}`;
+
+  const btn = $('ev-exportar');
+  if(btn) btn.onclick = () => {
+    const blob = new Blob([JSON.stringify(historico,null,2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'guided-training-historico.json';
+    a.click();
+  };
+}
+
+/* =====================================================================
+   8. Estado da nuvem e arranque
+   ===================================================================== */
+function marcarNuvem(ok){
+  nuvemOk = ok;
+  const n = $('nuvem');
+  n.className = 'nuvem ' + (ok ? 'ok' : 'off');
+  $('nuvem-txt').textContent = ok ? 'banco ok' : 'offline';
+}
+
+function desenharTudo(){ desenharBriefing(); desenharDebrief(); }
+
+desenharTudo();
+
+// testa a conexão sem travar a tela
+(async () => {
+  try{ await nuvemLer(); marcarNuvem(true); await sincronizarPendentes(); }
+  catch(e){ marcarNuvem(false); }
+})();
+</script>
+
+</body>
+</html>
