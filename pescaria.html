@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070b0f">
+<title>Pescaria do João</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+/* =====================================================================
+   PESCARIA DO JOÃO — pesca de arremesso, praia, água salgada
+   Mesma linguagem visual dos outros apps: escuro, tipografia de
+   instrumento, feito para o celular na areia.
+   ===================================================================== */
+:root{
+  color-scheme: dark;
+  --fundo:#070b0f; --painel:#0e151c; --painel2:#131d26; --linha:#1e2b38;
+  --texto:#cfe3f2; --apagado:#7d97aa;
+  --verde:#24e07a; --ambar:#ffb020; --vermelho:#ff4d4d; --ciano:#35c4ff; --roxo:#7a5cff;
+  --mono: ui-monospace,"Cascadia Mono","Roboto Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--fundo);min-height:100%}
+body{
+  font-family:var(--mono); color:var(--texto); font-size:15px; line-height:1.5;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  background:radial-gradient(900px 420px at 50% -8%,#0d2430 0%,transparent 62%),var(--fundo);
+}
+h1,h2,h3{margin:0;font-weight:600}
+button{font-family:var(--mono);cursor:pointer}
+a{color:var(--ciano)}
+
+.topo{position:sticky;top:0;z-index:900;background:rgba(14,21,28,.96);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--linha);padding:10px 14px}
+.topo-l1{display:flex;align-items:center;gap:10px}
+.marca{font-size:13px;letter-spacing:2.5px;color:var(--ciano);font-weight:700}
+.marca span{color:var(--apagado)}
+.local{margin-left:auto;font-size:10px;color:var(--apagado);border:1px solid var(--linha);
+  border-radius:20px;padding:4px 10px;background:var(--painel2);max-width:58vw;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.abas{position:fixed;left:0;right:0;bottom:0;z-index:950;display:grid;grid-template-columns:repeat(4,1fr);
+  background:rgba(14,21,28,.98);border-top:1px solid var(--linha);
+  padding-bottom:env(safe-area-inset-bottom);backdrop-filter:blur(8px)}
+.abas button{background:none;border:0;color:var(--apagado);padding:12px 2px 14px;font-size:10px;
+  letter-spacing:1.2px;border-top:2px solid transparent}
+.abas button.on{color:var(--ciano);border-top-color:var(--ciano);background:rgba(53,196,255,.06)}
+.abas b{display:block;font-size:16px;margin-bottom:3px;font-weight:400}
+
+.tela{padding:14px;display:none} .tela.on{display:block}
+.card{background:var(--painel);border:1px solid var(--linha);border-radius:12px;padding:15px;margin-bottom:12px}
+.rot{font-size:10px;letter-spacing:2px;color:var(--apagado);margin-bottom:9px}
+.sub{color:var(--apagado);font-size:12.5px;line-height:1.5}
+.tag{display:inline-block;font-size:9.5px;letter-spacing:1px;padding:3px 8px;border-radius:12px;
+  background:var(--painel2);border:1px solid var(--linha);color:var(--apagado);margin:2px 4px 2px 0}
+.tag.fis{color:var(--verde);border-color:#14522f}
+.tag.pra{color:var(--ciano);border-color:#1d4b63}
+.tag.fra{color:var(--ambar);border-color:#5a4310}
+.tag.tra{color:var(--roxo);border-color:#39298c}
+
+.aviso{border-left:3px solid var(--ambar);background:#1d1704;color:#ffd684;
+  padding:11px 13px;border-radius:8px;font-size:12.5px;margin-top:12px;line-height:1.55}
+.nota{border-left:3px solid var(--ciano);background:#08202b;color:#a9d9ef;
+  padding:11px 13px;border-radius:8px;font-size:12px;margin-top:12px;line-height:1.55}
+.perigo{border-left:3px solid var(--vermelho);background:#230b0b;color:#ffc0c0;
+  padding:11px 13px;border-radius:8px;font-size:12.5px;margin-top:12px;line-height:1.55}
+
+.btn{width:100%;padding:14px;border-radius:10px;border:1px solid var(--linha);
+  background:var(--painel2);color:var(--texto);font-size:14px;margin-top:9px}
+.btn.pri{background:var(--ciano);color:#04121b;border-color:var(--ciano);font-weight:700}
+.btn.mini{width:auto;padding:8px 13px;font-size:12px;margin-top:0}
+.btn.perigo2{color:var(--vermelho);border-color:#5a1414;background:#1a0808}
+.btn:disabled{opacity:.45}
+.linha-btn{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{
+  width:100%;background:var(--painel2);border:1px solid var(--linha);border-radius:8px;
+  color:var(--texto);padding:10px;font-family:var(--mono);font-size:14px;margin-top:5px}
+textarea{min-height:70px;resize:vertical}
+label{font-size:11px;color:var(--apagado);letter-spacing:.5px;display:block;margin-top:11px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+
+/* --------- score --------- */
+.hoje{display:flex;align-items:center;gap:14px}
+.donut{width:86px;height:86px;flex:none;position:relative}
+.donut svg{transform:rotate(-90deg)}
+.donut .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:700}
+.hoje .txt{flex:1;min-width:0}
+.hoje .txt b{display:block;font-size:16px;margin-bottom:3px}
+
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:6px}
+.cal .dia{background:var(--painel2);border:1px solid var(--linha);border-radius:8px;
+  padding:6px 3px;text-align:center;cursor:pointer;position:relative;min-height:56px}
+.cal .dia.sel{border-color:var(--ciano)}
+.cal .dia .d{font-size:9px;color:var(--apagado)}
+.cal .dia .s{font-size:16px;font-weight:700;line-height:1.25}
+.cal .dia .m{font-size:8px;color:var(--apagado);letter-spacing:.5px}
+.cal .dia.semdados{opacity:.62;border-style:dashed}
+.cabdias{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
+.cabdias span{text-align:center;font-size:9px;color:var(--apagado);letter-spacing:1px}
+
+.barrah{display:flex;align-items:flex-end;gap:2px;height:64px;margin:10px 0 4px}
+.barrah i{flex:1;border-radius:2px 2px 0 0;min-height:2px;background:var(--ciano);opacity:.85;position:relative}
+.barrah i.now{outline:1px solid var(--texto)}
+.eixoh{display:flex;justify-content:space-between;font-size:9px;color:var(--apagado)}
+
+.fator{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--linha)}
+.fator:last-child{border-bottom:0}
+.fator .lb{flex:1;min-width:0}
+.fator .lb b{display:block;font-size:13px;font-weight:500}
+.fator .lb small{color:var(--apagado);font-size:10.5px;display:block;line-height:1.45}
+.fator .vl{font-size:15px;font-weight:600;white-space:nowrap}
+.fator input[type=range]{width:96px;margin:0}
+.mini{height:5px;background:var(--painel2);border-radius:3px;overflow:hidden;margin-top:5px}
+.mini div{height:100%;background:var(--ciano)}
+
+/* --------- mapa --------- */
+#mapa,#mapa2{height:300px;border-radius:12px;border:1px solid var(--linha);margin-top:10px;background:var(--painel2)}
+.leaflet-container{background:#0a1420}
+.lista .it{background:var(--painel);border:1px solid var(--linha);border-left:3px solid var(--ciano);
+  border-radius:10px;padding:12px;margin-bottom:9px}
+.lista .it .cab{display:flex;gap:9px;align-items:baseline}
+.lista .it .cab b{flex:1;font-size:14px;font-weight:600}
+.lista .it .cab i{font-style:normal;font-size:11px;color:var(--apagado);white-space:nowrap}
+.lista .it .cor{font-size:12px;color:var(--apagado);margin-top:6px;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.chip{font-size:10px;padding:3px 8px;border-radius:11px;background:var(--painel2);
+  border:1px solid var(--linha);color:var(--apagado)}
+.chip.ok{color:var(--verde);border-color:#14522f}
+.foto{width:100%;border-radius:9px;border:1px solid var(--linha);margin-top:9px;display:block}
+.fotomini{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--linha)}
+.vazio{text-align:center;color:var(--apagado);padding:34px 14px;font-size:12.5px;line-height:1.65}
+
+details{margin-top:10px;border-top:1px solid var(--linha);padding-top:8px}
+summary{cursor:pointer;font-size:11px;letter-spacing:1px;color:var(--apagado);padding:5px 0}
+details[open] summary{color:var(--ciano)}
+.expl{font-size:12.5px;color:#a9c2d3;line-height:1.65}
+.expl b{color:var(--texto)}
+.expl ul{padding-left:18px;margin:7px 0}
+.expl li{margin-bottom:6px}
+.expl p{margin:9px 0}
+table.t{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px}
+table.t td,table.t th{border-bottom:1px solid var(--linha);padding:7px 4px;text-align:left;vertical-align:top}
+table.t th{color:var(--apagado);font-weight:400;font-size:9.5px;letter-spacing:1px}
+.no{background:var(--painel2);border:1px solid var(--linha);border-radius:10px;padding:12px;margin-bottom:10px}
+.no h4{margin:0 0 4px;font-size:14px;color:var(--ciano)}
+.no svg{width:100%;height:auto;display:block;margin:8px 0;background:#0a121a;border-radius:8px}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:2000;
+  background:var(--painel2);border:1px solid var(--ciano);border-radius:9px;padding:11px 18px;
+  font-size:13px;max-width:88vw;text-align:center;display:none}
+.modal{position:fixed;inset:0;z-index:1500;background:rgba(3,7,11,.85);display:none;
+  align-items:flex-end;justify-content:center;padding:0}
+.modal.on{display:flex}
+.modal .cx{background:var(--painel);border:1px solid var(--linha);border-radius:14px 14px 0 0;
+  width:100%;max-width:640px;max-height:92vh;overflow:auto;padding:16px 15px calc(20px + env(safe-area-inset-bottom))}
+.modal .cx h3{font-size:15px;margin-bottom:4px}
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <div class="topo-l1">
+    <div class="marca">PESCARIA<span>DO JOÃO</span></div>
+    <div class="local" id="lbl-local">sem local</div>
+  </div>
+</div>
+
+<div class="tela on" id="tela-previsao"></div>
+<div class="tela" id="tela-pescarias"></div>
+<div class="tela" id="tela-tralha"></div>
+<div class="tela" id="tela-guia"></div>
+
+<nav class="abas">
+  <button class="on" data-t="previsao"><b>◈</b>PREVISÃO</button>
+  <button data-t="pescarias"><b>◉</b>PESCARIAS</button>
+  <button data-t="tralha"><b>▣</b>TRALHA</button>
+  <button data-t="guia"><b>▤</b>GUIA</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal"><div class="cx" id="modal-cx"></div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+/* =====================================================================
+   1. UTILITÁRIOS E GUARDA LOCAL
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rad = Math.PI/180;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+const LS = {
+  ler(k,p){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):p; }catch(e){ return p; } },
+  gravar(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }
+               catch(e){ toast('Sem espaço no aparelho. Apague alguma foto antiga.',5000); return false; } }
+};
+
+function toast(msg,ms){ const t=$('toast'); t.textContent=msg; t.style.display='block';
+  clearTimeout(t._h); t._h=setTimeout(()=>{t.style.display='none';}, ms||3000); }
+
+function abrirModal(html){ $('modal-cx').innerHTML = html; $('modal').classList.add('on'); }
+function fecharModal(){ $('modal').classList.remove('on'); $('modal-cx').innerHTML=''; }
+$('modal').addEventListener('click', e => { if(e.target.id==='modal') fecharModal(); });
+
+const CARD = ['N','NNE','NE','ENE','L','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+const dirCard = g => CARD[Math.round(((g%360)+360)%360/22.5)%16];
+const pad = n => String(n).padStart(2,'0');
+
+/* Tempo local do PONTO (não do aparelho): tudo passa pelo offset devolvido
+   pela API. Assim o app continua certo se o ponto estiver em outro fuso. */
+let TZ = -new Date().getTimezoneOffset()*60;   // padrão: fuso do aparelho
+const dLocal = (dt) => new Date(dt.getTime() + TZ*1000);
+const partes = dt => { const d=dLocal(dt); return {a:d.getUTCFullYear(), m:d.getUTCMonth(), d:d.getUTCDate(), H:d.getUTCHours(), M:d.getUTCMinutes()}; };
+const meiaNoite = (a,m,d) => new Date(Date.UTC(a,m,d,0,0,0) - TZ*1000);
+const hhmm = dt => { if(!dt) return '—'; const p=partes(dt); return pad(p.H)+':'+pad(p.M); };
+const chaveDia = dt => { const p=partes(dt); return p.a+'-'+pad(p.m+1)+'-'+pad(p.d); };
+const hojeChave = () => chaveDia(new Date());
+const DIASEM = ['dom','seg','ter','qua','qui','sex','sáb'];
+const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+/* =====================================================================
+   2. ASTRONOMIA — calculada aqui, sem API
+   ---------------------------------------------------------------------
+   Sol: série de baixa precisão do Astronomical Almanac (erro < 0,01°).
+   Lua: série truncada de Meeus (erro da ordem de 0,3° em longitude), o
+   que dá nascer/pôr com poucos minutos de erro. É suficiente para pesca;
+   NÃO serve para navegação nem para efeméride precisa.
+   ===================================================================== */
+const nJ2000 = dt => dt.getTime()/86400000 - 10957.5;
+
+function solPos(n){
+  const L = 280.460 + 0.9856474*n;
+  const g = (357.528 + 0.9856003*n)*rad;
+  const lam = (L + 1.915*Math.sin(g) + 0.020*Math.sin(2*g))*rad;
+  const eps = (23.439 - 0.0000004*n)*rad;
+  return { ra: Math.atan2(Math.cos(eps)*Math.sin(lam), Math.cos(lam)),
+           dec: Math.asin(Math.sin(eps)*Math.sin(lam)), lam };
+}
+function luaPos(n){
+  const L = (218.316 + 13.176396*n)*rad;
+  const M = (134.963 + 13.064993*n)*rad;
+  const F = (93.272  + 13.229350*n)*rad;
+  const lam = L + 6.289*rad*Math.sin(M);
+  const bet = 5.128*rad*Math.sin(F);
+  const eps = (23.439 - 0.0000004*n)*rad;
+  return { ra: Math.atan2(Math.sin(lam)*Math.cos(eps) - Math.tan(bet)*Math.sin(eps), Math.cos(lam)),
+           dec: Math.asin(Math.sin(bet)*Math.cos(eps) + Math.cos(bet)*Math.sin(eps)*Math.sin(lam)),
+           lam, bet, dist: 385001 - 20905*Math.cos(M) };
+}
+const gmst = n => (280.16 + 360.9856235*n)*rad;
+function altGraus(pos, n, lat, lon){
+  const H = gmst(n) + lon*rad - pos.ra;
+  return Math.asin(Math.sin(lat*rad)*Math.sin(pos.dec) + Math.cos(lat*rad)*Math.cos(pos.dec)*Math.cos(H))/rad;
+}
+
+/* Varre o dia de 10 em 10 minutos e acha cruzamentos e culminações.
+   Método numérico de propósito: é robusto e evita as armadilhas das
+   fórmulas fechadas em latitudes e datas incomuns. */
+function eventosAstro(fn, lat, lon, t0, h0){
+  const N=144, alt=[], tm=[];
+  for(let i=0;i<=N;i++){
+    const t=new Date(t0.getTime()+i*600000);
+    tm.push(t); alt.push(altGraus(fn(nJ2000(t)), nJ2000(t), lat, lon));
+  }
+  const interp=(i)=>{ const f=(h0-alt[i-1])/(alt[i]-alt[i-1]); return new Date(tm[i-1].getTime()+f*600000); };
+  let nasce=null, poe=null, culm=null, anti=null, maxA=-99, minA=99;
+  for(let i=1;i<=N;i++){
+    if(alt[i-1]<h0 && alt[i]>=h0 && !nasce) nasce=interp(i);
+    if(alt[i-1]>=h0 && alt[i]<h0 && !poe)   poe=interp(i);
+    if(alt[i]>maxA){ maxA=alt[i]; culm=tm[i]; }
+    if(alt[i]<minA){ minA=alt[i]; anti=tm[i]; }
+  }
+  return {nasce, poe, culminacao:culm, antiCulminacao:anti, altMax:maxA, altMin:minA, sempreAcima:(minA>h0), sempreAbaixo:(maxA<h0)};
+}
+
+function faseLua(dt){
+  const n=nJ2000(dt), s=solPos(n), l=luaPos(n);
+  const elong = Math.acos(Math.cos(l.bet)*Math.cos(l.lam - s.lam));
+  const k = (1 - Math.cos(elong))/2;
+  let d = (l.lam - s.lam) % (2*Math.PI); if(d<0) d += 2*Math.PI;
+  const g = d/rad;
+  let nome;
+  if(g<22.5||g>=337.5) nome='Nova';
+  else if(g<67.5) nome='Crescente côncava';
+  else if(g<112.5) nome='Quarto crescente';
+  else if(g<157.5) nome='Crescente gibosa';
+  else if(g<202.5) nome='Cheia';
+  else if(g<247.5) nome='Minguante gibosa';
+  else if(g<292.5) nome='Quarto minguante';
+  else nome='Minguante côncava';
+  return {iluminacao:k, angulo:g, nome, crescente:(g<180),
+          /* proximidade de sizígia: 1 em lua nova/cheia, 0 em quadratura.
+             É o que governa a AMPLITUDE de maré (fenômeno físico real). */
+          sizigia: Math.abs(Math.cos(d))};
+}
+
+function astroDoDia(lat, lon, t0){
+  const sol  = eventosAstro(solPos, lat, lon, t0, -0.833);
+  const civil= eventosAstro(solPos, lat, lon, t0, -6);
+  const lua  = eventosAstro(luaPos, lat, lon, t0, 0.125);
+  return {sol, civil, lua, fase: faseLua(new Date(t0.getTime()+12*3600e3))};
+}
+
+/* =====================================================================
+   3. DADOS: local, pontos, diário, tralha, pesos, marés manuais
+   ===================================================================== */
+let CFG   = LS.ler('pk_cfg', {lat:null, lon:null, nome:'', orientacaoPraia:null});
+let PESOS = LS.ler('pk_pesos', {mare:100, crepusculo:80, vento:80, onda:60, amplitude:50, pressao:35, solunar:25});
+let PONTOS    = LS.ler('pk_pontos', []);
+let PESCARIAS = LS.ler('pk_pescarias', []);
+let TRALHA    = LS.ler('pk_tralha', []);
+let MARES     = LS.ler('pk_mares', {});      // {'AAAA-MM-DD': [{h:'05:12', alt:1.4}, ...]}
+let DADOS = null;                            // resposta das APIs, normalizada
+let CARREGANDO = false;
+
+const salvarCfg   = () => LS.gravar('pk_cfg', CFG);
+const salvarPesos = () => LS.gravar('pk_pesos', PESOS);
+const salvarPontos= () => LS.gravar('pk_pontos', PONTOS);
+const salvarPesc  = () => LS.gravar('pk_pescarias', PESCARIAS);
+const salvarTralha= () => LS.gravar('pk_tralha', TRALHA);
+const salvarMares = () => LS.gravar('pk_mares', MARES);
+
+/* =====================================================================
+   4. APIs — Open-Meteo (grátis, sem chave, com CORS)
+   Previsão: api.open-meteo.com/v1/forecast
+   Mar:      marine-api.open-meteo.com/v1/marine
+   Ambas cobrem no máximo 16 dias. Depois disso o app só tem astronomia,
+   e diz isso na tela em vez de fingir que sabe.
+   ===================================================================== */
+const MAX_DIAS_API = 16;
+const cacheChave = (lat,lon) => 'pk_cache_'+lat.toFixed(2)+'_'+lon.toFixed(2);
+
+async function carregarDados(lat, lon, forcar){
+  const ck = cacheChave(lat,lon);
+  const cache = LS.ler(ck, null);
+  const fresco = cache && (Date.now()-cache.ts < 3*3600e3);
+  if(cache && !forcar){
+    DADOS = cache.d; TZ = DADOS.tz;
+    if(fresco) return {origem:'cache'};
+  }
+  CARREGANDO = true; render();
+  try{
+    const p1 = 'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
+      '&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,precipitation,cloud_cover,temperature_2m'+
+      '&forecast_days='+MAX_DIAS_API+'&timezone=auto&wind_speed_unit=kn';
+    const p2 = 'https://marine-api.open-meteo.com/v1/marine?latitude='+lat+'&longitude='+lon+
+      '&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature,sea_level_height_msl'+
+      '&forecast_days='+MAX_DIAS_API+'&timezone=auto';
+    const [a,b] = await Promise.all([
+      fetch(p1).then(r=>r.json()),
+      fetch(p2).then(r=>r.json()).catch(()=>null)
+    ]);
+    if(a.error) throw new Error(a.reason||'erro na previsão');
+    const d = {
+      tz: a.utc_offset_seconds,
+      horas: a.hourly.time,
+      vento: a.hourly.wind_speed_10m,
+      rajada: a.hourly.wind_gusts_10m,
+      dirVento: a.hourly.wind_direction_10m,
+      pressao: a.hourly.pressure_msl,
+      chuva: a.hourly.precipitation,
+      nuvens: a.hourly.cloud_cover,
+      temp: a.hourly.temperature_2m,
+      onda: (b&&b.hourly)?b.hourly.wave_height:null,
+      periodo: (b&&b.hourly)?b.hourly.wave_period:null,
+      dirOnda: (b&&b.hourly)?b.hourly.wave_direction:null,
+      tempAgua: (b&&b.hourly)?b.hourly.sea_surface_temperature:null,
+      nivel: (b&&b.hourly)?b.hourly.sea_level_height_msl:null,
+      buscadoEm: new Date().toISOString()
+    };
+    DADOS = d; TZ = d.tz;
+    LS.gravar(ck, {ts:Date.now(), d});
+    CARREGANDO = false;
+    return {origem:'rede'};
+  }catch(e){
+    CARREGANDO = false;
+    if(cache){ DADOS = cache.d; TZ = DADOS.tz; return {origem:'cache-velho', erro:String(e.message||e)}; }
+    return {origem:'falhou', erro:String(e.message||e)};
+  }
+}
+
+/* índice da hora dentro do array da API */
+function idxHora(dt){
+  if(!DADOS) return -1;
+  const p = partes(dt);
+  const alvo = p.a+'-'+pad(p.m+1)+'-'+pad(p.d)+'T'+pad(p.H)+':00';
+  return DADOS.horas.indexOf(alvo);
+}
+/* =====================================================================
+   5. MOTOR DE SCORE
+   ---------------------------------------------------------------------
+   Cada fator recebe uma etiqueta de quanto ele se sustenta. Isso está na
+   tela de propósito: parte do que se fala em pesca é física, parte é
+   observação prática repetida, e parte é tradição sem evidência. O app
+   não vende folclore como ciência — ele mistura os três e diz qual é qual.
+   ===================================================================== */
+const FATORES = [
+  {id:'mare', nome:'Movimento de maré', classe:'pra', etiqueta:'PRÁTICO',
+   diz:'Quanto mais rápido a água está subindo ou descendo naquela hora, maior a nota.',
+   base:'Água em movimento arrasta alimento, forma correntes e obriga o peixe a se posicionar para comer. É a regra mais repetida na pesca de praia e tem mecanismo físico plausível. Não conheço medição rigorosa que quantifique o efeito — trate como observação prática forte, não como lei.'},
+  {id:'crepusculo', nome:'Amanhecer e entardecer', classe:'pra', etiqueta:'PRÁTICO',
+   diz:'Nota alta na hora em volta do nascer e do pôr do sol.',
+   base:'Muitos predadores costeiros caçam na luz baixa, quando enxergam melhor que a presa. É comportamento documentado em várias espécies, embora o tamanho do efeito varie muito conforme espécie, água e local.'},
+  {id:'vento', nome:'Vento', classe:'fis', etiqueta:'FÍSICO',
+   diz:'Melhor entre 6 e 14 nós. Cai muito acima de 22 nós e um pouco no vento zero.',
+   base:'Aqui não há mistério: vento demais impede arremessar, embola a linha e levanta a arrebentação; vento nenhum deixa a água parada e limpa demais. A faixa boa é a que revolve a água sem inviabilizar a pescaria.'},
+  {id:'onda', nome:'Onda', classe:'fis', etiqueta:'FÍSICO',
+   diz:'Melhor entre 0,5 e 1,5 m. Cai acima de 2 m.',
+   base:'Arrebentação moderada revolve o fundo, solta tatuíra e marisco e forma valas. Onda grande demais torna a praia perigosa e a leitura impossível. É restrição física direta.'},
+  {id:'amplitude', nome:'Amplitude da maré', classe:'fis', etiqueta:'FÍSICO',
+   diz:'Nota alta em maré de sizígia (lua nova e cheia), baixa em quadratura.',
+   base:'Este é o único efeito lunar realmente físico: perto de lua nova e cheia o Sol e a Lua se somam e a maré fica maior, movendo mais água. É astronomia, não crença. O que NÃO tem base é a ideia de que a fase da lua em si, fora esse efeito, atrai o peixe.'},
+  {id:'pressao', nome:'Pressão e tendência', classe:'fra', etiqueta:'EVIDÊNCIA FRACA',
+   diz:'Bônus quando a pressão vem caindo nas últimas 6 horas.',
+   base:'A ideia de que o peixe come mais com a pressão caindo, antes da frente chegar, é quase unânime entre pescadores e tem alguns estudos favoráveis em espécies específicas — mas os resultados são inconsistentes e boa parte do efeito pode ser o vento e a nebulosidade que vêm junto. Peso baixo de propósito.'},
+  {id:'solunar', nome:'Tábua solunar', classe:'tra', etiqueta:'TRADIÇÃO',
+   diz:'Períodos maiores na passagem da lua pelo meridiano e no oposto; menores no nascer e pôr da lua.',
+   base:'A teoria solunar é de 1926, de John Alden Knight, e nunca foi confirmada por estudo controlado. Está aqui porque muita gente pesca por ela e porque parte do seu efeito aparente provavelmente é a maré, que já está contada à parte. Deixei o peso baixo. Se quiser, zere — o app continua funcionando.'}
+];
+const FAT = {}; FATORES.forEach(f=>FAT[f.id]=f);
+
+/* ---------- curva de maré a partir da tábua digitada à mão ---------- */
+function curvaManual(chave){
+  const lista = (MARES[chave]||[]).filter(x=>x && x.h && x.alt!=null)
+    .map(x=>{ const [H,M]=x.h.split(':').map(Number); return {min:H*60+(M||0), alt:+x.alt}; })
+    .sort((a,b)=>a.min-b.min);
+  return lista.length>=2 ? lista : null;
+}
+function nivelManual(curva, minutos){
+  for(let i=0;i<curva.length-1;i++){
+    const a=curva[i], b=curva[i+1];
+    if(minutos>=a.min && minutos<=b.min){
+      const f=(minutos-a.min)/(b.min-a.min);
+      const nivel=(a.alt+b.alt)/2 + (a.alt-b.alt)/2*Math.cos(Math.PI*f);
+      const decl = -(a.alt-b.alt)/2 * (Math.PI/((b.min-a.min)/60)) * Math.sin(Math.PI*f);
+      return {nivel, decl};
+    }
+  }
+  return null;
+}
+/* Declive máximo do dia segundo a tábua digitada: é a referência para
+   normalizar o fator maré na MESMA escala do modelo (1 = enchendo ou
+   vazando no máximo daquele dia). Sem isto, digitar a tábua oficial
+   rebaixava a nota em vez de melhorá-la. */
+function declMaxManual(curva){
+  let mx = 0;
+  for(let i=0;i<curva.length-1;i++){
+    const dh = Math.abs(curva[i+1].alt - curva[i].alt);
+    const dt = (curva[i+1].min - curva[i].min)/60;
+    if(dt>0) mx = Math.max(mx, dh*Math.PI/(2*dt));
+  }
+  return mx;
+}
+
+/* ---------- normalizadores ---------- */
+let REF_DECL = 0.25;   // m/h de referência, recalculado a partir dos dados do local
+let REF_AMPL = 1.5;    // m de amplitude diária de referência
+function calibrar(){
+  if(!DADOS || !DADOS.nivel) return;
+  const decls=[];
+  for(let i=1;i<DADOS.nivel.length;i++){
+    const a=DADOS.nivel[i-1], b=DADOS.nivel[i];
+    if(a!=null&&b!=null) decls.push(Math.abs(b-a));
+  }
+  if(decls.length){
+    decls.sort((x,y)=>x-y);
+    REF_DECL = Math.max(0.05, decls[Math.floor(decls.length*0.9)]);
+  }
+  const porDia={};
+  DADOS.horas.forEach((h,i)=>{ const d=h.slice(0,10); const v=DADOS.nivel[i];
+    if(v==null) return; (porDia[d]=porDia[d]||[]).push(v); });
+  const amps=Object.values(porDia).map(v=>Math.max(...v)-Math.min(...v)).filter(v=>isFinite(v));
+  if(amps.length) REF_AMPL = Math.max(0.2, Math.max(...amps));
+}
+
+const gauss = (dtMin, sigma) => Math.exp(-0.5*Math.pow(dtMin/sigma,2));
+function minutosEntre(a,b){ return Math.abs(a.getTime()-b.getTime())/60000; }
+
+/* ---------- fatores hora a hora ---------- */
+function fatoresHora(dt, astro, chave){
+  const f={};
+  const p=partes(dt), minutosDia=p.H*60+p.M;
+  const i = idxHora(dt);
+  const temAPI = i>=0;
+
+  // maré: manual tem prioridade sobre o modelo
+  const cm = curvaManual(chave);
+  let r = cm ? nivelManual(cm, minutosDia) : null;
+  if(r){
+    const mx = declMaxManual(cm) || 1;
+    f.mare = clamp(Math.abs(r.decl)/mx, 0, 1);
+  } else if(temAPI && DADOS.nivel && DADOS.nivel[i]!=null && DADOS.nivel[i+1]!=null){
+    // sem tábua manual, ou hora fora do intervalo dela: usa o modelo
+    f.mare = clamp(Math.abs(DADOS.nivel[i+1]-DADOS.nivel[i])/REF_DECL, 0, 1);
+  }
+
+  // crepúsculos
+  let cre=0;
+  if(astro.sol.nasce) cre=Math.max(cre, gauss(minutosEntre(dt,astro.sol.nasce),70));
+  if(astro.sol.poe)   cre=Math.max(cre, gauss(minutosEntre(dt,astro.sol.poe),70));
+  f.crepusculo = cre;
+
+  // vento
+  if(temAPI && DADOS.vento[i]!=null){
+    const v=DADOS.vento[i], g=DADOS.rajada[i]||v;
+    let s;
+    if(v<6) s=0.45+0.55*(v/6);
+    else if(v<=14) s=1;
+    else if(v<=22) s=1-0.75*((v-14)/8);
+    else if(v<=28) s=0.25-0.20*((v-22)/6);
+    else s=0.05;
+    if(g>30) s=Math.min(s,0.15);
+    f.vento = clamp(s,0,1);
+  }
+
+  // onda
+  if(temAPI && DADOS.onda && DADOS.onda[i]!=null){
+    const o=DADOS.onda[i];
+    let s;
+    if(o<0.2) s=0.45;
+    else if(o<0.5) s=0.45+0.55*((o-0.2)/0.3);
+    else if(o<=1.5) s=1;
+    else if(o<=2.2) s=1-0.55*((o-1.5)/0.7);
+    else if(o<=3.0) s=0.45-0.35*((o-2.2)/0.8);
+    else s=0.08;
+    f.onda = clamp(s,0,1);
+  }
+
+  // amplitude do dia
+  f.amplitude = amplitudeDia(chave, dt);
+
+  // pressão: tendência das últimas 6 h
+  if(temAPI && i>=6 && DADOS.pressao[i]!=null && DADOS.pressao[i-6]!=null){
+    const d = DADOS.pressao[i]-DADOS.pressao[i-6];
+    f.pressao = clamp(0.6 - d*0.25, 0.15, 1);   // caindo → sobe; subindo → cai
+  }
+
+  // solunar
+  let sol=0;
+  if(astro.lua.culminacao)     sol=Math.max(sol, gauss(minutosEntre(dt,astro.lua.culminacao),55));
+  if(astro.lua.antiCulminacao) sol=Math.max(sol, gauss(minutosEntre(dt,astro.lua.antiCulminacao),55));
+  if(astro.lua.nasce)          sol=Math.max(sol, 0.7*gauss(minutosEntre(dt,astro.lua.nasce),40));
+  if(astro.lua.poe)            sol=Math.max(sol, 0.7*gauss(minutosEntre(dt,astro.lua.poe),40));
+  f.solunar = sol;
+
+  return f;
+}
+
+function amplitudeDia(chave, dt){
+  const cm = curvaManual(chave);
+  if(cm){
+    const amp = Math.max(...cm.map(x=>x.alt))-Math.min(...cm.map(x=>x.alt));
+    return clamp(amp/REF_AMPL, 0, 1);
+  }
+  if(DADOS && DADOS.nivel){
+    const vals=[];
+    DADOS.horas.forEach((h,i)=>{ if(h.slice(0,10)===chave && DADOS.nivel[i]!=null) vals.push(DADOS.nivel[i]); });
+    if(vals.length>=6) return clamp((Math.max(...vals)-Math.min(...vals))/REF_AMPL, 0, 1);
+  }
+  // fora do alcance da API: proxy físico pela sizígia (lua nova/cheia)
+  return faseLua(dt).sizigia;
+}
+
+function scoreHora(dt, astro, chave){
+  const f = fatoresHora(dt, astro, chave);
+  let num=0, den=0, usados=0;
+  FATORES.forEach(ft=>{
+    const w = PESOS[ft.id]||0;
+    if(w<=0) return;
+    if(f[ft.id]==null) return;
+    num += w*f[ft.id]; den += w; usados++;
+  });
+  return {score: den? num/den : 0, fatores:f, usados, base:den};
+}
+
+/* ---------- dia inteiro ---------- */
+function analisarDia(dataBase, lat, lon){
+  const p = partes(dataBase);
+  const t0 = meiaNoite(p.a, p.m, p.d);
+  const chave = chaveDia(t0);
+  const astro = astroDoDia(lat, lon, t0);
+  const horas=[];
+  for(let h=0; h<24; h++){
+    const dt = new Date(t0.getTime()+h*3600e3);
+    const s = scoreHora(dt, astro, chave);
+    horas.push({dt, h, ...s});
+  }
+  const temAPI = idxHora(new Date(t0.getTime()+12*3600e3)) >= 0;
+  // melhor janela de 3 h
+  let melhor={ini:0, val:-1};
+  for(let h=0; h<=21; h++){
+    const m=(horas[h].score+horas[h+1].score+horas[h+2].score)/3;
+    if(m>melhor.val) melhor={ini:h, val:m};
+  }
+  // segunda janela, afastada da primeira
+  let seg={ini:-1, val:-1};
+  for(let h=0; h<=21; h++){
+    if(Math.abs(h-melhor.ini)<4) continue;
+    const m=(horas[h].score+horas[h+1].score+horas[h+2].score)/3;
+    if(m>seg.val) seg={ini:h, val:m};
+  }
+  const media = horas.reduce((s,x)=>s+x.score,0)/24;
+  const scoreDia = clamp(0.65*melhor.val + 0.35*media, 0, 1);
+  return {chave, t0, astro, horas, melhor, seg, scoreDia, temAPI,
+          manual: !!curvaManual(chave)};
+}
+
+const corScore = s => s>=0.72?'var(--verde)' : s>=0.55?'var(--ciano)' : s>=0.38?'var(--ambar)':'var(--vermelho)';
+const rotuloScore = s => s>=0.72?'ÓTIMO' : s>=0.55?'BOM' : s>=0.38?'RAZOÁVEL':'FRACO';
+const n100 = s => Math.round(s*100);
+/* =====================================================================
+   6. TELA — PREVISÃO
+   ===================================================================== */
+let diaSel = new Date();
+let abaAtual = 'previsao';
+
+function temLocal(){ return CFG.lat!=null && CFG.lon!=null; }
+
+function donut(s){
+  const r=36, c=2*Math.PI*r, off=c*(1-s);
+  return `<div class="donut">
+    <svg viewBox="0 0 86 86" width="86" height="86">
+      <circle cx="43" cy="43" r="${r}" fill="none" stroke="var(--painel2)" stroke-width="9"></circle>
+      <circle cx="43" cy="43" r="${r}" fill="none" stroke="${corScore(s)}" stroke-width="9"
+        stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"></circle>
+    </svg><div class="num" style="color:${corScore(s)}">${n100(s)}</div></div>`;
+}
+
+/* extremos de maré do modelo, para o dia */
+function extremosModelo(chave){
+  if(!DADOS || !DADOS.nivel) return [];
+  const idx=[]; DADOS.horas.forEach((h,i)=>{ if(h.slice(0,10)===chave) idx.push(i); });
+  const ex=[];
+  for(let k=1;k<idx.length-1;k++){
+    const i=idx[k], a=DADOS.nivel[i-1], b=DADOS.nivel[i], c=DADOS.nivel[i+1];
+    if(a==null||b==null||c==null) continue;
+    if(b>=a && b>=c) ex.push({h:DADOS.horas[i].slice(11,16), alt:b, tipo:'alta'});
+    if(b<=a && b<=c) ex.push({h:DADOS.horas[i].slice(11,16), alt:b, tipo:'baixa'});
+  }
+  return ex;
+}
+
+function desenharPrevisao(){
+  const el = $('tela-previsao');
+
+  if(!temLocal()){
+    el.innerHTML = `
+      <div class="card">
+        <div class="rot">ONDE VOCÊ VAI PESCAR</div>
+        <div class="sub">O app precisa de um ponto para buscar vento, mar e maré. Nada é chutado: sem
+          local, não há previsão.</div>
+        <button class="btn pri" id="b-geo">Usar minha localização</button>
+        <button class="btn" id="b-mapa">Escolher no mapa</button>
+        <div class="nota">A localização fica só no seu aparelho. O app envia apenas as coordenadas
+          para a Open-Meteo buscar a previsão.</div>
+      </div>`;
+    $('b-geo').onclick = pedirGeo;
+    $('b-mapa').onclick = () => { irPara('pescarias'); setTimeout(()=>toast('Toque no mapa para marcar o ponto.',4000),400); };
+    return;
+  }
+
+  if(CARREGANDO){ el.innerHTML = `<div class="vazio">Buscando previsão…</div>`; return; }
+
+  const A = analisarDia(diaSel, CFG.lat, CFG.lon);
+  const agora = new Date();
+  const ehHoje = A.chave === hojeChave();
+  const iAgora = idxHora(agora);
+  const p = partes(A.t0);
+  const dataTxt = DIASEM[new Date(Date.UTC(p.a,p.m,p.d)).getUTCDay()]+', '+p.d+' '+MES[p.m];
+
+  const jan = h => pad(h)+':00–'+pad((h+3)%24)+':00';
+  const ex = A.manual ? (MARES[A.chave]||[]).map(x=>({h:x.h, alt:+x.alt, tipo:x.tipo||''})) : extremosModelo(A.chave);
+
+  const maxBarra = Math.max(0.15, ...A.horas.map(h=>h.score));
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="rot">${esc(dataTxt.toUpperCase())} ${ehHoje?'· HOJE':''}</div>
+      <div class="hoje">
+        ${donut(A.scoreDia)}
+        <div class="txt">
+          <b>${rotuloScore(A.scoreDia)}</b>
+          <div class="sub">Melhor janela <b style="color:var(--texto)">${jan(A.melhor.ini)}</b>
+            (${n100(A.melhor.val)})${A.seg.ini>=0 && A.seg.val>0.45 ? ' · 2ª: '+jan(A.seg.ini)+' ('+n100(A.seg.val)+')' : ''}</div>
+          <div class="sub" style="margin-top:4px">Lua ${esc(A.astro.fase.nome.toLowerCase())} ·
+            ${Math.round(A.astro.fase.iluminacao*100)}% iluminada</div>
+        </div>
+      </div>
+      ${!A.temAPI ? `<div class="aviso"><b>Só astronomia neste dia.</b> A previsão de tempo e mar da
+        Open-Meteo alcança ${MAX_DIAS_API} dias. Daqui para a frente o app só sabe sol, lua e amplitude
+        de maré — não sabe vento, onda nem pressão. A nota vale bem menos; use para escolher a semana,
+        não o dia.</div>` : ''}
+
+      <div class="barrah">
+        ${A.horas.map(h=>`<i style="height:${Math.max(3,h.score/maxBarra*100)}%;background:${corScore(h.score)}"
+           class="${ehHoje && h.h===partes(agora).H?'now':''}" title="${pad(h.h)}h — ${n100(h.score)}"></i>`).join('')}
+      </div>
+      <div class="eixoh"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
+      <div class="sub" style="margin-top:6px">Nota hora a hora. ${ehHoje?'A barra com contorno é a hora atual.':''}</div>
+    </div>
+
+    ${A.temAPI && iAgora>=0 && ehHoje ? `<div class="card">
+      <div class="rot">AGORA</div>
+      <div class="fator"><div class="lb"><b>Vento</b><small>${dirCard(DADOS.dirVento[iAgora])} · rajada ${Math.round(DADOS.rajada[iAgora])} kn</small></div>
+        <div class="vl">${Math.round(DADOS.vento[iAgora])} kn</div></div>
+      ${DADOS.onda?`<div class="fator"><div class="lb"><b>Onda</b><small>período ${DADOS.periodo[iAgora]!=null?DADOS.periodo[iAgora].toFixed(0)+' s':'—'} · de ${DADOS.dirOnda[iAgora]!=null?dirCard(DADOS.dirOnda[iAgora]):'—'}</small></div>
+        <div class="vl">${DADOS.onda[iAgora]!=null?DADOS.onda[iAgora].toFixed(1)+' m':'—'}</div></div>`:''}
+      <div class="fator"><div class="lb"><b>Pressão</b><small>tendência 6 h: ${
+        (iAgora>=6 && DADOS.pressao[iAgora-6]!=null) ? ((DADOS.pressao[iAgora]-DADOS.pressao[iAgora-6])>=0?'+':'')+(DADOS.pressao[iAgora]-DADOS.pressao[iAgora-6]).toFixed(1)+' hPa':'—'
+      }</small></div><div class="vl">${DADOS.pressao[iAgora].toFixed(0)}</div></div>
+      ${DADOS.tempAgua && DADOS.tempAgua[iAgora]!=null?`<div class="fator"><div class="lb"><b>Água</b><small>temperatura da superfície</small></div>
+        <div class="vl">${DADOS.tempAgua[iAgora].toFixed(1)}°</div></div>`:''}
+      <div class="fator"><div class="lb"><b>Ar</b><small>nuvens ${DADOS.nuvens[iAgora]}% · chuva ${DADOS.chuva[iAgora]} mm</small></div>
+        <div class="vl">${DADOS.temp[iAgora].toFixed(0)}°</div></div>
+    </div>`:''}
+
+    <div class="card">
+      <div class="rot">SOL E LUA</div>
+      <div class="duo">
+        <div><div class="sub">Nascer do sol</div><b>${hhmm(A.astro.sol.nasce)}</b></div>
+        <div><div class="sub">Pôr do sol</div><b>${hhmm(A.astro.sol.poe)}</b></div>
+        <div><div class="sub">Nascer da lua</div><b>${hhmm(A.astro.lua.nasce)}</b></div>
+        <div><div class="sub">Pôr da lua</div><b>${hhmm(A.astro.lua.poe)}</b></div>
+        <div><div class="sub">Lua no meridiano</div><b>${hhmm(A.astro.lua.culminacao)}</b></div>
+        <div><div class="sub">Lua oposta</div><b>${hhmm(A.astro.lua.antiCulminacao)}</b></div>
+      </div>
+      <div class="sub" style="margin-top:9px">Calculado no próprio aparelho, sem internet. Precisão de
+        alguns minutos — bom para pesca, não serve para navegação.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">MARÉ — ${A.manual?'TÁBUA DIGITADA POR VOCÊ':'MODELO OPEN-METEO'}</div>
+      ${ex.length ? `<table class="t"><tr><th>HORA</th><th>TIPO</th><th style="text-align:right">NÍVEL</th></tr>
+        ${ex.map(e=>`<tr><td>${esc(e.h)}</td><td>${esc(e.tipo||'')}</td>
+          <td style="text-align:right">${e.alt.toFixed(2)} m</td></tr>`).join('')}</table>`
+        : `<div class="sub">Sem extremos de maré para este dia.</div>`}
+      ${A.manual
+        ? `<div class="nota">Estes são os valores que você digitou da tábua da Marinha. O app usa eles
+             no lugar do modelo para calcular o movimento da maré.</div>`
+        : `<div class="aviso"><b>Isto não é a tábua de marés oficial.</b> É a série
+             <code>sea_level_height_msl</code> da Open-Meteo: nível do mar modelado, referido ao nível
+             médio do mar, incluindo maré e efeito do vento. Serve muito bem para saber <b>quando</b> a
+             água sobe e desce e <b>quanto</b> ela se mexe — que é o que a nota usa. Não serve como
+             altura oficial: o zero é outro (a tábua usa o nível de redução) e os minutos podem diferir.
+             Para o número oficial, use a Tábua de Marés da Marinha e digite aqui.</div>`}
+      <div class="linha-btn">
+        <button class="btn mini" id="b-mare">Digitar tábua deste dia</button>
+        <a class="btn mini" style="text-decoration:none;text-align:center" target="_blank" rel="noopener"
+           href="https://www.marinha.mil.br/chm/tabuas-de-mare">Tábua da Marinha ↗</a>
+      </div>
+      <div class="sub" style="margin-top:8px">O site da Marinha às vezes exibe uma verificação de
+        segurança antes de abrir. Não existe API pública e gratuita da tábua oficial — por isso a
+        digitação é manual.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">PRÓXIMOS 30 DIAS</div>
+      <div class="cabdias">${['D','S','T','Q','Q','S','S'].map(x=>`<span>${x}</span>`).join('')}</div>
+      <div class="cal" id="grade"></div>
+      <div class="sub" style="margin-top:9px">Contorno tracejado = dia sem previsão de tempo e mar,
+        só astronomia.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">O QUE ENTRA NA NOTA — PESOS AJUSTÁVEIS</div>
+      <div class="sub" style="margin-bottom:6px">Os pesos são seus. Se você acha que solunar é bobagem,
+        zere. Se aprender no diário que sua praia rende com vento sul, aumente o vento.</div>
+      ${FATORES.map(f=>{
+        const v = A.horas[Math.min(23,A.melhor.ini+1)].fatores[f.id];
+        return `<div class="fator">
+          <div class="lb"><b>${esc(f.nome)}</b>
+            <span class="tag ${f.classe}">${f.etiqueta}</span>
+            <small>${esc(f.diz)}</small>
+            <small style="color:${v==null?'var(--vermelho)':'var(--apagado)'}">
+              ${v==null?'sem dado para este dia':'na melhor janela: '+Math.round(v*100)}</small>
+          </div>
+          <div style="text-align:right">
+            <input type="range" min="0" max="100" step="5" value="${PESOS[f.id]}" data-peso="${f.id}">
+            <div class="sub" style="text-align:right">${PESOS[f.id]}</div>
+          </div>
+        </div>`;
+      }).join('')}
+      <button class="btn" id="b-reset">Voltar aos pesos padrão</button>
+      <details>
+        <summary>▸ POR QUE CADA FATOR ESTÁ AÍ (e quanto ele se sustenta)</summary>
+        <div class="expl">
+          ${FATORES.map(f=>`<p><b>${esc(f.nome)}</b> <span class="tag ${f.classe}">${f.etiqueta}</span><br>${esc(f.base)}</p>`).join('')}
+          <p><b>Como a nota é montada.</b> Cada fator vira um valor de 0 a 100 na hora, os valores são
+          combinados pela média ponderada dos pesos acima, e a nota do dia é 65% da melhor janela de
+          3 horas mais 35% da média do dia. Fator sem dado simplesmente sai da conta — não vira zero,
+          para não punir o dia por falta de informação.</p>
+          <p class="sub">Nenhuma dessas notas é promessa de peixe. O melhor preditor que você vai ter é o
+          seu próprio diário, nesta praia, com estas iscas. Por isso a aba PESCARIAS é a mais importante
+          do app.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="rot">LOCAL E DADOS</div>
+      <div class="sub">${CFG.nome?esc(CFG.nome)+' · ':''}${CFG.lat.toFixed(4)}, ${CFG.lon.toFixed(4)}
+        ${DADOS?'<br>Previsão buscada em '+new Date(DADOS.buscadoEm).toLocaleString('pt-BR'):''}</div>
+      <div class="linha-btn">
+        <button class="btn mini" id="b-geo2">Minha localização</button>
+        <button class="btn mini" id="b-atualiza">Atualizar previsão</button>
+      </div>
+    </div>`;
+
+  // grade do calendário
+  const g = $('grade');
+  const base = new Date();
+  const b0 = partes(base);
+  const inicio = meiaNoite(b0.a,b0.m,b0.d);
+  const primeiroDiaSemana = new Date(Date.UTC(b0.a,b0.m,b0.d)).getUTCDay();
+  let html='';
+  for(let k=0;k<primeiroDiaSemana;k++) html += `<div></div>`;
+  for(let k=0;k<30;k++){
+    const dt = new Date(inicio.getTime()+k*86400e3);
+    const D = analisarDia(dt, CFG.lat, CFG.lon);
+    const pp = partes(dt);
+    html += `<div class="dia ${D.chave===A.chave?'sel':''} ${D.temAPI?'':'semdados'}" data-k="${k}">
+      <div class="d">${pp.d}/${pp.m+1}</div>
+      <div class="s" style="color:${corScore(D.scoreDia)}">${n100(D.scoreDia)}</div>
+      <div class="m">${pad(D.melhor.ini)}h</div></div>`;
+  }
+  g.innerHTML = html;
+  g.querySelectorAll('.dia').forEach(d=>{
+    d.onclick = () => { diaSel = new Date(inicio.getTime()+(+d.dataset.k)*86400e3); desenharPrevisao(); window.scrollTo(0,0); };
+  });
+
+  el.querySelectorAll('input[data-peso]').forEach(inp=>{
+    inp.oninput = () => { PESOS[inp.dataset.peso] = +inp.value; salvarPesos();
+      inp.nextElementSibling.textContent = inp.value; };
+    inp.onchange = () => desenharPrevisao();
+  });
+  $('b-reset').onclick = () => { PESOS={mare:100,crepusculo:80,vento:80,onda:60,amplitude:50,pressao:35,solunar:25};
+    salvarPesos(); desenharPrevisao(); };
+  $('b-geo2').onclick = pedirGeo;
+  $('b-atualiza').onclick = async () => { await carregarDados(CFG.lat,CFG.lon,true); calibrar(); desenharPrevisao(); toast('Previsão atualizada.'); };
+  $('b-mare').onclick = () => formMare(A.chave);
+}
+
+/* ---------- entrada manual da tábua ---------- */
+function formMare(chave){
+  const atual = MARES[chave] || [{h:'',alt:'',tipo:'alta'},{h:'',alt:'',tipo:'baixa'},{h:'',alt:'',tipo:'alta'},{h:'',alt:'',tipo:'baixa'}];
+  const linhas = [0,1,2,3].map(i=>{
+    const x = atual[i]||{h:'',alt:'',tipo:i%2?'baixa':'alta'};
+    return `<div class="trio">
+      <div><label>Hora</label><input type="time" data-m="h" data-i="${i}" value="${esc(x.h)}"></div>
+      <div><label>Altura (m)</label><input type="number" step="0.01" data-m="alt" data-i="${i}" value="${x.alt===''?'':x.alt}"></div>
+      <div><label>Tipo</label><select data-m="tipo" data-i="${i}">
+        <option value="alta" ${x.tipo==='alta'?'selected':''}>alta</option>
+        <option value="baixa" ${x.tipo==='baixa'?'selected':''}>baixa</option></select></div>
+    </div>`;
+  }).join('');
+  abrirModal(`
+    <h3>Tábua de marés — ${esc(chave)}</h3>
+    <div class="sub">Copie da Tábua de Marés da Marinha do Brasil, do porto mais próximo da sua praia.
+      Preencha as marés que houver; deixe em branco o que não usar.</div>
+    ${linhas}
+    <div class="aviso">A tábua oficial é do <b>porto de referência</b>, não da sua praia. A diferença de
+      horário para praias vizinhas costuma ser de minutos, mas existe. O app usa o que você digitar,
+      exatamente como digitou.</div>
+    <button class="btn pri" id="m-salvar">Salvar</button>
+    <button class="btn" id="m-limpar">Apagar deste dia</button>
+    <button class="btn" id="m-fechar">Cancelar</button>`);
+  $('m-salvar').onclick = () => {
+    const arr=[0,1,2,3].map(i=>{
+      const g=(m)=>$('modal-cx').querySelector(`[data-m="${m}"][data-i="${i}"]`).value;
+      return {h:g('h'), alt:g('alt'), tipo:g('tipo')};
+    }).filter(x=>x.h && x.alt!=='');
+    if(arr.length){ MARES[chave]=arr; } else { delete MARES[chave]; }
+    salvarMares(); fecharModal(); desenharPrevisao(); toast('Tábua salva para este dia.');
+  };
+  $('m-limpar').onclick = () => { delete MARES[chave]; salvarMares(); fecharModal(); desenharPrevisao(); };
+  $('m-fechar').onclick = fecharModal;
+}
+
+/* ---------- localização ---------- */
+function pedirGeo(){
+  if(!navigator.geolocation){ toast('Este navegador não tem geolocalização.'); return; }
+  toast('Pedindo sua localização…');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    CFG.lat = pos.coords.latitude; CFG.lon = pos.coords.longitude;
+    if(!CFG.nome) CFG.nome = 'Minha posição';
+    salvarCfg(); atualizarTopo();
+    const r = await carregarDados(CFG.lat, CFG.lon, true); calibrar();
+    if(r.origem==='falhou') toast('Sem internet: previsão indisponível. O resto do app funciona.',4500);
+    render();
+  }, err=>{
+    toast('Não consegui a localização ('+err.message+'). Marque o ponto no mapa.',5000);
+  }, {enableHighAccuracy:true, timeout:12000, maximumAge:300000});
+}
+
+function atualizarTopo(){
+  $('lbl-local').textContent = temLocal()
+    ? (CFG.nome || (CFG.lat.toFixed(3)+', '+CFG.lon.toFixed(3)))
+    : 'sem local';
+}
+/* =====================================================================
+   7. TELA — PESCARIAS (mapa + pontos + diário)
+   O coração do app. O mapa de bons pontos nasce do histórico dele.
+   Nenhum ponto vem de fábrica: se está no mapa, foi ele que marcou.
+   ===================================================================== */
+let MAPA=null, camadaPontos=null, modoMarcar=false;
+
+const pescDoPonto = id => PESCARIAS.filter(p=>p.pontoId===id);
+const totalCapturas = p => (p.capturas||[]).reduce((s,c)=>s+(+c.qtd||0),0);
+function statsPonto(id){
+  const ps = pescDoPonto(id);
+  const idas = ps.length;
+  const peixes = ps.reduce((s,p)=>s+totalCapturas(p),0);
+  const brancos = ps.filter(p=>totalCapturas(p)===0).length;
+  const media = idas? peixes/idas : 0;
+  const melhor = ps.slice().sort((a,b)=>totalCapturas(b)-totalCapturas(a))[0];
+  const iscas={};
+  ps.forEach(p=>{ if(p.isca) iscas[p.isca]=(iscas[p.isca]||0)+totalCapturas(p); });
+  const topIsca = Object.entries(iscas).sort((a,b)=>b[1]-a[1])[0];
+  return {idas, peixes, brancos, media, melhor, topIsca};
+}
+const corPonto = m => m>=4?'#24e07a' : m>=2?'#35c4ff' : m>=1?'#ffb020' : m>0?'#c98b2a' : '#7d97aa';
+
+function desenharPescarias(){
+  const el = $('tela-pescarias');
+  const ultimas = PESCARIAS.slice().sort((a,b)=>(b.data+(b.horaIni||'')).localeCompare(a.data+(a.horaIni||'')));
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="rot">SEUS PONTOS — ${PONTOS.length}</div>
+      <div class="sub">Toque no mapa para marcar um ponto novo. Os pontos e o histórico são seus e
+        ficam só neste aparelho.</div>
+      <div id="mapa"></div>
+      <div class="linha-btn">
+        <button class="btn mini" id="b-marcar">Marcar ponto aqui</button>
+        <button class="btn mini" id="b-centrar">Centrar em mim</button>
+        <button class="btn mini" id="b-manual">Digitar coordenada</button>
+      </div>
+      <div class="sub" style="margin-top:8px">Cor do pino = média de peixes por ida naquele ponto.
+        Cinza = ainda sem pescaria registrada.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">REGISTRAR PESCARIA</div>
+      <div class="sub">É esse registro que, com o tempo, vira o mapa de bons pontos. Vale registrar
+        o dia em branco também — é ele que ensina o que NÃO funciona.</div>
+      <button class="btn pri" id="b-nova" ${PONTOS.length?'':'disabled'}>Nova pescaria</button>
+      ${PONTOS.length?'':'<div class="sub" style="margin-top:8px">Marque um ponto no mapa primeiro.</div>'}
+    </div>
+
+    ${PONTOS.length?`<div class="card">
+      <div class="rot">DESEMPENHO POR PONTO</div>
+      ${PONTOS.map(pt=>{
+        const s = statsPonto(pt.id);
+        return `<div class="fator">
+          <div class="lb"><b style="color:${corPonto(s.media)}">${esc(pt.nome)}</b>
+            <small>${s.idas} ida(s) · ${s.peixes} peixe(s) · ${s.brancos} em branco${
+              s.topIsca?' · melhor isca: '+esc(s.topIsca[0]):''}</small>
+            <small>${pt.lat.toFixed(4)}, ${pt.lon.toFixed(4)}${pt.orientacao!=null?' · praia olha para '+dirCard(pt.orientacao):''}</small>
+          </div>
+          <div class="vl" style="color:${corPonto(s.media)}">${s.media.toFixed(1)}</div>
+        </div>`;
+      }).join('')}
+      <div class="sub" style="margin-top:8px">Média de peixes por ida. Com poucas idas o número não
+        significa nada — é amostra pequena, não talento do ponto.</div>
+    </div>`:''}
+
+    <div class="card">
+      <div class="rot">DIÁRIO — ${PESCARIAS.length} PESCARIA(S)</div>
+      <div class="lista" id="lista-pesc">
+        ${ultimas.length? ultimas.map(p=>cartaoPescaria(p)).join('')
+          : '<div class="vazio">Nada registrado ainda.<br><br>Depois da primeira pescaria, este diário passa a ser a melhor fonte de previsão que você tem — melhor que qualquer nota calculada.</div>'}
+      </div>
+    </div>`;
+
+  $('b-nova').onclick = () => formPescaria(null);
+  $('b-marcar').onclick = () => { modoMarcar=true; toast('Toque no mapa onde fica o ponto.',4000); };
+  $('b-centrar').onclick = () => { if(temLocal() && MAPA) MAPA.setView([CFG.lat,CFG.lon],14); else pedirGeo(); };
+  $('b-manual').onclick = formPontoManual;
+  el.querySelectorAll('[data-editar]').forEach(b=> b.onclick = ()=> formPescaria(b.dataset.editar));
+  el.querySelectorAll('[data-apagar]').forEach(b=> b.onclick = ()=>{
+    if(confirm('Apagar esta pescaria?')){ PESCARIAS = PESCARIAS.filter(x=>x.id!==b.dataset.apagar); salvarPesc(); desenharPescarias(); }
+  });
+  // o innerHTML acima destruiu o container: a instância antiga do Leaflet
+  // ficou apontando para um nó solto e precisa ser descartada.
+  if(MAPA){ try{ MAPA.remove(); }catch(e){} MAPA=null; camadaPontos=null; }
+  setTimeout(iniciarMapa, 60);
+}
+
+function cartaoPescaria(p){
+  const pt = PONTOS.find(x=>x.id===p.pontoId);
+  const n = totalCapturas(p);
+  const c = p.cond||{};
+  return `<div class="it" style="border-left-color:${corPonto(n)}">
+    <div class="cab"><b>${esc(pt?pt.nome:'ponto apagado')}</b><i>${esc(p.data)}${p.horaIni?' '+esc(p.horaIni):''}</i></div>
+    <div class="cor">${n?'<b>'+n+' peixe(s)</b>':'<b>Em branco</b>'}${p.isca?' · isca: '+esc(p.isca):''}</div>
+    ${(p.capturas||[]).length?`<div class="chips">${p.capturas.map(x=>
+      `<span class="chip ok">${esc(x.especie)} ×${esc(x.qtd)}${x.cm?' · '+esc(x.cm)+'cm':''}</span>`).join('')}</div>`:''}
+    <div class="chips">
+      ${c.score!=null?`<span class="chip">nota ${c.score}</span>`:''}
+      ${c.vento!=null?`<span class="chip">vento ${c.vento} kn ${esc(c.dirVento||'')}</span>`:''}
+      ${c.onda!=null?`<span class="chip">onda ${c.onda} m</span>`:''}
+      ${c.pressao!=null?`<span class="chip">${c.pressao} hPa</span>`:''}
+      ${c.fase?`<span class="chip">${esc(c.fase)}</span>`:''}
+      ${p.mare?`<span class="chip">maré ${esc(p.mare)}</span>`:''}
+    </div>
+    ${p.obs?`<div class="cor">${esc(p.obs)}</div>`:''}
+    <div class="linha-btn">
+      <button class="btn mini" data-editar="${p.id}">Editar</button>
+      <button class="btn mini perigo2" data-apagar="${p.id}">Apagar</button>
+    </div>
+  </div>`;
+}
+
+function iniciarMapa(){
+  const div = $('mapa'); if(!div) return;
+  if(typeof L === 'undefined'){
+    div.outerHTML = `<div class="aviso" id="mapa">Mapa indisponível: a biblioteca Leaflet não carregou
+      (provavelmente você está sem internet). Todo o resto do app funciona offline — use
+      <b>Digitar coordenada</b> para cadastrar um ponto.</div>`;
+    return;
+  }
+  if(MAPA){ MAPA.invalidateSize(); return; }
+  const centro = temLocal()? [CFG.lat,CFG.lon] : (PONTOS[0]? [PONTOS[0].lat,PONTOS[0].lon] : [-23.0,-43.4]);
+  MAPA = L.map('mapa',{attributionControl:true}).setView(centro, temLocal()||PONTOS.length?13:5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19, attribution:'© OpenStreetMap'
+  }).addTo(MAPA);
+  camadaPontos = L.layerGroup().addTo(MAPA);
+  MAPA.on('click', e=>{
+    if(!modoMarcar) return;
+    modoMarcar=false;
+    formPonto(null, e.latlng.lat, e.latlng.lng);
+  });
+  redesenharPinos();
+}
+
+function redesenharPinos(){
+  if(!camadaPontos) return;
+  camadaPontos.clearLayers();
+  PONTOS.forEach(pt=>{
+    const s = statsPonto(pt.id);
+    const m = L.circleMarker([pt.lat,pt.lon],{radius:9,color:corPonto(s.media),weight:2,
+      fillColor:corPonto(s.media),fillOpacity:.55}).addTo(camadaPontos);
+    m.bindPopup(`<b>${esc(pt.nome)}</b><br>${s.idas} ida(s) · ${s.peixes} peixe(s)<br>
+      média ${s.media.toFixed(1)}/ida${s.topIsca?'<br>melhor isca: '+esc(s.topIsca[0]):''}
+      <br><small>${pt.lat.toFixed(4)}, ${pt.lon.toFixed(4)}</small>`);
+  });
+  if(temLocal()){
+    L.circleMarker([CFG.lat,CFG.lon],{radius:5,color:'#fff',weight:2,fillOpacity:1}).addTo(camadaPontos)
+      .bindPopup('Local usado na previsão');
+  }
+}
+
+function formPontoManual(){ formPonto(null, CFG.lat!=null?CFG.lat:'', CFG.lon!=null?CFG.lon:''); }
+
+function formPonto(id, lat, lon){
+  const pt = id? PONTOS.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${pt?'Editar ponto':'Novo ponto'}</h3>
+    <label>Nome</label><input type="text" id="p-nome" value="${esc(pt?pt.nome:'')}" placeholder="ex.: vala do canto direito">
+    <div class="duo">
+      <div><label>Latitude</label><input type="number" step="0.00001" id="p-lat" value="${pt?pt.lat:(lat!==''?lat:'')}"></div>
+      <div><label>Longitude</label><input type="number" step="0.00001" id="p-lon" value="${pt?pt.lon:(lon!==''?lon:'')}"></div>
+    </div>
+    <label>Para onde a praia olha, em graus (opcional)</label>
+    <input type="number" min="0" max="359" id="p-ori" value="${pt&&pt.orientacao!=null?pt.orientacao:''}" placeholder="ex.: 135 se a praia olha para SE">
+    <label>Notas do ponto</label>
+    <textarea id="p-notas" placeholder="ex.: vala funda na maré baixa, pedra submersa a 40 m à esquerda">${esc(pt?pt.notas:'')}</textarea>
+    <button class="btn pri" id="p-salvar">Salvar</button>
+    ${pt?'<button class="btn perigo2" id="p-apagar">Apagar ponto</button>':''}
+    <button class="btn" id="p-fechar">Cancelar</button>`);
+  $('p-salvar').onclick = () => {
+    const nome=$('p-nome').value.trim()||'Ponto sem nome';
+    const la=parseFloat($('p-lat').value), lo=parseFloat($('p-lon').value);
+    if(!isFinite(la)||!isFinite(lo)){ toast('Coordenada inválida.'); return; }
+    const ori = $('p-ori').value===''? null : clamp(parseInt($('p-ori').value,10),0,359);
+    if(pt){ Object.assign(pt,{nome,lat:la,lon:lo,orientacao:ori,notas:$('p-notas').value.trim()}); }
+    else { PONTOS.push({id:uid(),nome,lat:la,lon:lo,orientacao:ori,notas:$('p-notas').value.trim()}); }
+    salvarPontos(); fecharModal(); desenharPescarias(); redesenharPinos(); toast('Ponto salvo.');
+  };
+  if(pt) $('p-apagar').onclick = () => {
+    if(!confirm('Apagar o ponto? As pescarias registradas nele continuam no diário.')) return;
+    PONTOS = PONTOS.filter(x=>x.id!==id); salvarPontos(); fecharModal(); desenharPescarias();
+  };
+  $('p-fechar').onclick = fecharModal;
+}
+
+function snapshotCondicoes(dataChave, hora){
+  if(!temLocal()) return {};
+  const [a,m,d] = dataChave.split('-').map(Number);
+  const t0 = meiaNoite(a,m-1,d);
+  const H = hora? parseInt(hora.split(':')[0],10) : 6;
+  const dt = new Date(t0.getTime()+H*3600e3);
+  const A = analisarDia(dt, CFG.lat, CFG.lon);
+  const i = idxHora(dt);
+  const c = {score:n100(A.horas[H]?A.horas[H].score:0), fase:A.astro.fase.nome};
+  if(i>=0){
+    c.vento = Math.round(DADOS.vento[i]);
+    c.dirVento = dirCard(DADOS.dirVento[i]);
+    c.pressao = Math.round(DADOS.pressao[i]);
+    if(DADOS.onda && DADOS.onda[i]!=null) c.onda = +DADOS.onda[i].toFixed(1);
+  }
+  return c;
+}
+
+function formPescaria(id){
+  const p = id? PESCARIAS.find(x=>x.id===id) : null;
+  const hoje = hojeChave();
+  const caps = (p&&p.capturas&&p.capturas.length)? p.capturas : [{especie:'',qtd:'',cm:''}];
+  abrirModal(`
+    <h3>${p?'Editar pescaria':'Nova pescaria'}</h3>
+    <label>Ponto</label>
+    <select id="f-ponto">${PONTOS.map(pt=>`<option value="${pt.id}" ${p&&p.pontoId===pt.id?'selected':''}>${esc(pt.nome)}</option>`).join('')}</select>
+    <div class="trio">
+      <div><label>Data</label><input type="date" id="f-data" value="${esc(p?p.data:hoje)}"></div>
+      <div><label>Início</label><input type="time" id="f-ini" value="${esc(p?p.horaIni:'')}"></div>
+      <div><label>Fim</label><input type="time" id="f-fim" value="${esc(p?p.horaFim:'')}"></div>
+    </div>
+    <label>Isca usada</label><input type="text" id="f-isca" value="${esc(p?p.isca:'')}" placeholder="ex.: tatuíra, camarão vivo, isca artificial">
+    <label>Maré (como você viu)</label><input type="text" id="f-mare" value="${esc(p?p.mare:'')}" placeholder="ex.: enchendo, 2h antes da cheia">
+    <label>Capturas</label>
+    <div id="f-caps">${caps.map((c,i)=>linhaCaptura(c,i)).join('')}</div>
+    <button class="btn mini" id="f-addcap" style="margin-top:8px">+ espécie</button>
+    <label>Observações</label>
+    <textarea id="f-obs" placeholder="o que você notou: água suja, banco de sardinha, pouco movimento…">${esc(p?p.obs:'')}</textarea>
+    <div class="nota">Ao salvar, o app guarda junto as condições daquele dia e hora (vento, onda,
+      pressão, fase da lua e a nota calculada). É assim que, mais adiante, dá para ver que tipo de
+      condição rende para você — com os seus dados, não com palpite meu.</div>
+    <button class="btn pri" id="f-salvar">Salvar pescaria</button>
+    <button class="btn" id="f-fechar">Cancelar</button>`);
+
+  function linhaCaptura(c,i){
+    return `<div class="trio" data-cap="${i}">
+      <div><input type="text" data-c="especie" value="${esc(c.especie)}" placeholder="espécie"></div>
+      <div><input type="number" data-c="qtd" value="${esc(c.qtd)}" placeholder="qtd"></div>
+      <div><input type="number" data-c="cm" value="${esc(c.cm)}" placeholder="cm"></div>
+    </div>`;
+  }
+  let nCaps = caps.length;
+  $('f-addcap').onclick = () => { $('f-caps').insertAdjacentHTML('beforeend', linhaCaptura({especie:'',qtd:'',cm:''}, nCaps++)); };
+  $('f-salvar').onclick = () => {
+    const capturas=[...$('f-caps').querySelectorAll('[data-cap]')].map(d=>{
+      const g=k=>d.querySelector(`[data-c="${k}"]`).value.trim();
+      return {especie:g('especie'), qtd:g('qtd'), cm:g('cm')};
+    }).filter(c=>c.especie);
+    const dados = {
+      pontoId: $('f-ponto').value, data: $('f-data').value, horaIni: $('f-ini').value,
+      horaFim: $('f-fim').value, isca: $('f-isca').value.trim(), mare: $('f-mare').value.trim(),
+      capturas, obs: $('f-obs').value.trim()
+    };
+    if(!dados.pontoId || !dados.data){ toast('Escolha ponto e data.'); return; }
+    dados.cond = snapshotCondicoes(dados.data, dados.horaIni);
+    if(p) Object.assign(p, dados); else PESCARIAS.push({id:uid(), ...dados});
+    salvarPesc(); fecharModal(); desenharPescarias(); redesenharPinos(); toast('Pescaria registrada.');
+  };
+  $('f-fechar').onclick = fecharModal;
+}
+
+/* =====================================================================
+   8. TELA — TRALHA
+   ===================================================================== */
+function comprimirFoto(file, cb){
+  const fr = new FileReader();
+  fr.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max=900, esc2=Math.min(1, max/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.round(img.width*esc2); cv.height=Math.round(img.height*esc2);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      cb(cv.toDataURL('image/jpeg',0.7));
+    };
+    img.onerror = () => cb(null);
+    img.src = fr.result;
+  };
+  fr.onerror = () => cb(null);
+  fr.readAsDataURL(file);
+}
+
+function desenharTralha(){
+  const el = $('tela-tralha');
+  const cats = ['vara','molinete/carretilha','linha','anzol/chumbada','isca','acessório','outro'];
+  const porCat = {}; cats.forEach(c=>porCat[c]=[]);
+  TRALHA.forEach(t=> (porCat[t.cat]||porCat['outro']).push(t));
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="rot">TRALHA — ${TRALHA.length} ITEM(NS)</div>
+      <div class="sub">Registro do que você tem, para não comprar repetido e para lembrar medidas na
+        hora de montar.</div>
+      <button class="btn pri" id="t-novo">Cadastrar item</button>
+      <div class="aviso"><b>Sobre as fotos:</b> o app <b>não</b> identifica o que está na imagem. Ele não
+        sabe se aquilo é um anzol 4/0 ou um molinete 6000 — a foto é só registro visual para você
+        reconhecer depois. Tudo que aparecer escrito no item veio do que <b>você</b> digitou.</div>
+    </div>
+    ${cats.filter(c=>porCat[c].length).map(c=>`
+      <div class="card">
+        <div class="rot">${c.toUpperCase()}</div>
+        ${porCat[c].map(t=>`
+          <div class="fator">
+            ${t.foto?`<img class="fotomini" src="${t.foto}" alt="foto de ${esc(t.nome)}">`:''}
+            <div class="lb"><b>${esc(t.nome)}</b>
+              <small>${esc(t.spec||'')}</small>
+              ${t.qtd?`<small>quantidade: ${esc(t.qtd)}</small>`:''}
+              ${t.notas?`<small>${esc(t.notas)}</small>`:''}
+            </div>
+            <button class="btn mini" data-tedit="${t.id}">Editar</button>
+          </div>`).join('')}
+      </div>`).join('')}
+    ${TRALHA.length?'':'<div class="vazio">Nada cadastrado ainda.</div>'}`;
+
+  $('t-novo').onclick = () => formTralha(null);
+  el.querySelectorAll('[data-tedit]').forEach(b=> b.onclick = ()=> formTralha(b.dataset.tedit));
+}
+
+function formTralha(id){
+  const t = id? TRALHA.find(x=>x.id===id) : null;
+  const cats = ['vara','molinete/carretilha','linha','anzol/chumbada','isca','acessório','outro'];
+  abrirModal(`
+    <h3>${t?'Editar item':'Novo item'}</h3>
+    <label>Nome</label><input type="text" id="t-nome" value="${esc(t?t.nome:'')}" placeholder="ex.: vara de praia 4,20 m">
+    <label>Categoria</label>
+    <select id="t-cat">${cats.map(c=>`<option ${t&&t.cat===c?'selected':''}>${c}</option>`).join('')}</select>
+    <label>Especificação</label>
+    <input type="text" id="t-spec" value="${esc(t?t.spec:'')}" placeholder="ex.: ação 100–250 g, 3 partes">
+    <div class="duo">
+      <div><label>Quantidade</label><input type="text" id="t-qtd" value="${esc(t?t.qtd:'')}"></div>
+      <div><label>Foto (opcional)</label><input type="file" accept="image/*" id="t-foto"></div>
+    </div>
+    <div id="t-prev">${t&&t.foto?`<img class="foto" src="${t.foto}" alt="foto do item">`:''}</div>
+    <label>Notas</label><textarea id="t-notas" placeholder="onde comprou, o que funcionou, o que quebrou">${esc(t?t.notas:'')}</textarea>
+    <div class="nota">A foto é guardada reduzida, dentro do seu navegador. Ela não é enviada para
+      lugar nenhum e <b>não é analisada</b> — serve só para você bater o olho e reconhecer.</div>
+    <button class="btn pri" id="t-salvar">Salvar</button>
+    ${t?'<button class="btn perigo2" id="t-apagar">Apagar item</button>':''}
+    <button class="btn" id="t-fechar">Cancelar</button>`);
+
+  let fotoNova = t? t.foto : null;
+  $('t-foto').onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    toast('Processando foto…');
+    comprimirFoto(f, d => {
+      if(!d){ toast('Não consegui ler essa imagem.'); return; }
+      fotoNova = d; $('t-prev').innerHTML = `<img class="foto" src="${d}" alt="foto do item">`;
+    });
+  };
+  $('t-salvar').onclick = () => {
+    const dados = {nome:$('t-nome').value.trim()||'Item sem nome', cat:$('t-cat').value,
+      spec:$('t-spec').value.trim(), qtd:$('t-qtd').value.trim(), notas:$('t-notas').value.trim(), foto:fotoNova};
+    if(t) Object.assign(t,dados); else TRALHA.push({id:uid(), ...dados});
+    if(salvarTralha()){ fecharModal(); desenharTralha(); toast('Item salvo.'); }
+  };
+  if(t) $('t-apagar').onclick = () => {
+    if(!confirm('Apagar este item?')) return;
+    TRALHA = TRALHA.filter(x=>x.id!==id); salvarTralha(); fecharModal(); desenharTralha();
+  };
+  $('t-fechar').onclick = fecharModal;
+}
+/* =====================================================================
+   9. TELA — GUIA
+   Nós desenhados em SVG (esquemáticos), montagens de praia, leitura de
+   praia, espécies e o que dá para dizer sobre licença e defeso sem
+   inventar número.
+   ===================================================================== */
+const NOS = [
+ {nome:'Palomar', para:'Prender anzol, girador ou snap. O mais simples de fazer certo no escuro.',
+  passos:['Dobre a linha e passe a alça pelo olhal.',
+          'Com a linha dobrada, dê um nó simples — sem apertar.',
+          'Passe a alça por cima do anzol e puxe as duas pontas.'],
+  svg:`<svg viewBox="0 0 320 96" aria-label="Diagrama do nó Palomar em três passos">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <circle cx="28" cy="48" r="9" stroke="#7d97aa"/>
+      <path d="M36 44 C60 40 78 40 96 44"/><path d="M36 52 C60 56 78 56 96 52"/>
+      <path d="M96 44 C104 44 104 52 96 52"/>
+      <circle cx="132" cy="48" r="9" stroke="#7d97aa"/>
+      <path d="M140 44 C160 38 176 40 186 48 C176 58 160 58 140 52"/>
+      <path d="M156 34 C176 34 190 44 186 48"/>
+      <circle cx="236" cy="48" r="9" stroke="#7d97aa"/>
+      <path d="M244 48 C262 40 282 44 288 48 C282 54 262 58 244 48"/>
+      <path d="M262 36 C274 36 284 42 288 48"/>
+      <path d="M262 60 C274 60 284 54 288 48"/>
+    </g>
+    <g fill="#7d97aa" font-size="10" font-family="monospace">
+      <text x="8" y="88">1</text><text x="112" y="88">2</text><text x="216" y="88">3</text></g></svg>`},
+ {nome:'Clinch melhorado', para:'Anzol e girador em monofilamento. Clássico e confiável.',
+  passos:['Passe a ponta pelo olhal e dê 5 a 6 voltas em volta da linha.',
+          'Volte a ponta pelo laço que ficou junto ao olhal.',
+          'Passe pelo laço grande que se formou e aperte molhando a linha.'],
+  svg:`<svg viewBox="0 0 320 96" aria-label="Diagrama do nó Clinch melhorado em três passos">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <circle cx="26" cy="48" r="9" stroke="#7d97aa"/>
+      <path d="M35 48 L96 48"/>
+      <path d="M46 48 q6 -10 12 0 q6 10 12 0 q6 -10 12 0 q6 10 12 0" stroke-width="2"/>
+      <circle cx="130" cy="48" r="9" stroke="#7d97aa"/>
+      <path d="M139 48 L196 48"/>
+      <path d="M150 48 q6 -10 12 0 q6 10 12 0 q6 -10 12 0" stroke-width="2"/>
+      <path d="M196 48 C200 32 150 30 143 42" stroke="#ffb020"/>
+      <circle cx="234" cy="48" r="9" stroke="#7d97aa"/>
+      <path d="M243 48 L300 48"/>
+      <path d="M254 48 q6 -10 12 0 q6 10 12 0 q6 -10 12 0" stroke-width="2"/>
+      <path d="M300 48 C304 30 252 28 246 42" stroke="#ffb020"/>
+      <path d="M246 42 C240 54 258 62 268 56" stroke="#24e07a"/>
+    </g>
+    <g fill="#7d97aa" font-size="10" font-family="monospace">
+      <text x="8" y="88">1</text><text x="112" y="88">2</text><text x="216" y="88">3</text></g></svg>`},
+ {nome:'Uni (universal)', para:'Serve para quase tudo: anzol, girador e também emenda linha com linha.',
+  passos:['Passe a ponta pelo olhal e volte, formando uma alça deitada.',
+          'Dê 5 a 6 voltas com a ponta por dentro da alça.',
+          'Puxe a ponta para fechar o nó e depois a linha para encostar no olhal.'],
+  svg:`<svg viewBox="0 0 320 96" aria-label="Diagrama do nó Uni em três passos">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <circle cx="26" cy="52" r="9" stroke="#7d97aa"/>
+      <path d="M35 52 L98 52"/><path d="M98 52 C104 40 78 36 62 40"/>
+      <circle cx="130" cy="52" r="9" stroke="#7d97aa"/>
+      <path d="M139 52 L202 52"/><path d="M202 52 C208 40 182 36 166 40"/>
+      <path d="M166 40 q8 12 16 0 q8 -12 16 0" stroke="#ffb020" stroke-width="2"/>
+      <circle cx="234" cy="52" r="9" stroke="#7d97aa"/>
+      <path d="M243 52 L288 52"/>
+      <path d="M266 52 m-10 0 a10 8 0 1 0 20 0 a10 8 0 1 0 -20 0" stroke="#24e07a"/>
+    </g>
+    <g fill="#7d97aa" font-size="10" font-family="monospace">
+      <text x="8" y="88">1</text><text x="112" y="88">2</text><text x="216" y="88">3</text></g></svg>`},
+ {nome:'Albright', para:'Emendar linhas de espessuras muito diferentes — multifilamento no líder de mono.',
+  passos:['Faça uma alça na linha mais grossa.',
+          'Passe a mais fina por dentro da alça e dê 10 voltas prendendo as duas pernas.',
+          'Volte a ponta fina pela alça, no mesmo lado por onde entrou, e aperte devagar.'],
+  svg:`<svg viewBox="0 0 320 96" aria-label="Diagrama do nó Albright em três passos">
+    <g fill="none" stroke-linecap="round">
+      <path d="M8 40 C40 40 56 32 56 48 C56 64 40 56 8 56" stroke="#7d97aa" stroke-width="3.2"/>
+      <path d="M112 40 C144 40 160 32 160 48 C160 64 144 56 112 56" stroke="#7d97aa" stroke-width="3.2"/>
+      <path d="M196 48 L128 48" stroke="#35c4ff" stroke-width="2"/>
+      <path d="M132 48 q5 -9 10 0 q5 9 10 0 q5 -9 10 0 q5 9 10 0" stroke="#35c4ff" stroke-width="1.8"/>
+      <path d="M216 40 C248 40 264 32 264 48 C264 64 248 56 216 56" stroke="#7d97aa" stroke-width="3.2"/>
+      <path d="M312 48 L232 48" stroke="#35c4ff" stroke-width="2"/>
+      <path d="M236 48 q5 -9 10 0 q5 9 10 0 q5 -9 10 0 q5 9 10 0" stroke="#35c4ff" stroke-width="1.8"/>
+      <path d="M232 48 C226 38 240 34 250 38" stroke="#24e07a" stroke-width="2"/>
+    </g>
+    <g fill="#7d97aa" font-size="10" font-family="monospace">
+      <text x="8" y="88">1</text><text x="112" y="88">2</text><text x="216" y="88">3</text></g></svg>`},
+ {nome:'Laçada do cirurgião', para:'Alça rápida na ponta da linha, para trocar chicote ou empate sem refazer nó.',
+  passos:['Dobre a ponta da linha formando uma alça.',
+          'Com a linha dobrada, dê duas voltas de nó simples.',
+          'Molhe e aperte puxando alça e pontas ao mesmo tempo.'],
+  svg:`<svg viewBox="0 0 320 96" aria-label="Diagrama da laçada do cirurgião em três passos">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <path d="M8 42 L70 42 C90 42 90 58 70 58 L8 58"/>
+      <path d="M112 42 L174 42 C194 42 194 58 174 58 L112 58"/>
+      <path d="M150 34 C168 30 182 44 168 52 C156 58 144 50 150 42" stroke="#ffb020"/>
+      <path d="M216 46 L262 46 C282 46 282 54 262 54 L216 54"/>
+      <ellipse cx="286" cy="50" rx="16" ry="11" stroke="#24e07a"/>
+    </g>
+    <g fill="#7d97aa" font-size="10" font-family="monospace">
+      <text x="8" y="88">1</text><text x="112" y="88">2</text><text x="216" y="88">3</text></g></svg>`},
+ {nome:'Nó de chicote (dropper loop)', para:'Cria uma alça no MEIO da linha, saindo perpendicular. É a base da montagem de praia com pernadas.',
+  passos:['Faça uma alça no meio da linha.',
+          'Torça a alça 6 a 8 vezes sobre si mesma.',
+          'Abra o centro das torções, empurre a alça por ali e aperte puxando as duas pontas.'],
+  svg:`<svg viewBox="0 0 320 96" aria-label="Diagrama do nó de chicote em três passos">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <path d="M8 56 L36 56 C48 56 48 34 60 34 C72 34 72 56 84 56 L100 56"/>
+      <path d="M112 56 L136 56"/><path d="M188 56 L204 56"/>
+      <path d="M136 56 q7 -14 14 0 q7 14 14 0 q7 -14 14 0 q7 14 14 0" stroke-width="2.1"/>
+      <path d="M216 56 L240 56"/><path d="M290 56 L312 56"/>
+      <path d="M240 56 q7 -12 14 0 q7 12 14 0 q7 -12 14 0" stroke-width="2.1"/>
+      <path d="M262 52 C262 28 286 28 286 52" stroke="#24e07a"/>
+    </g>
+    <g fill="#7d97aa" font-size="10" font-family="monospace">
+      <text x="8" y="88">1</text><text x="112" y="88">2</text><text x="216" y="88">3</text></g></svg>`}
+];
+
+const MONTAGENS = [
+ {nome:'Chicote de duas pernadas (pater noster)', quando:'O feijão com arroz da praia. Duas iscas em alturas diferentes, chumbada embaixo. Bom para papa-terra, corvina, pampo e bagre.',
+  como:['Chumbada na ponta, presa por um girador ou direto na linha.',
+        'Duas pernadas de 15 a 25 cm feitas com nó de chicote, acima da chumbada.',
+        'Pernada de cima mais longa que a de baixo, para não embolarem no arremesso.'],
+  svg:`<svg viewBox="0 0 300 150" aria-label="Esquema da montagem de chicote com duas pernadas">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <path d="M150 6 L150 126"/>
+      <path d="M150 46 L206 62"/><path d="M150 84 L200 96"/>
+      <path d="M150 126 l-9 12 h18 z" fill="#7d97aa" stroke="#7d97aa"/>
+      <path d="M206 62 c8 4 8 12 0 12" stroke="#ffb020"/>
+      <path d="M200 96 c8 4 8 12 0 12" stroke="#ffb020"/>
+      <circle cx="150" cy="16" r="4" stroke="#7d97aa"/>
+    </g>
+    <g fill="#7d97aa" font-size="9.5" font-family="monospace">
+      <text x="158" y="20">girador</text><text x="212" y="66">pernada 1</text>
+      <text x="206" y="100">pernada 2</text><text x="112" y="146">chumbada</text></g></svg>`},
+ {nome:'Corrediça (running ledger)', quando:'Quando o peixe é desconfiado e larga a isca ao sentir o peso. A linha corre livre dentro da chumbada. Bom para robalo e pampo em água limpa.',
+  como:['Chumbada com furo passante ou argola corrediça na linha principal.',
+        'Uma contra-conta e um girador embaixo, para a chumbada não descer até o anzol.',
+        'Empate de 40 cm a 1 m abaixo do girador, conforme a desconfiança do peixe.'],
+  svg:`<svg viewBox="0 0 300 150" aria-label="Esquema da montagem corrediça">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <path d="M150 6 L150 132"/>
+      <rect x="136" y="40" width="28" height="18" rx="6" stroke="#7d97aa"/>
+      <circle cx="150" cy="70" r="5" stroke="#ffb020"/>
+      <circle cx="150" cy="86" r="4" stroke="#7d97aa"/>
+      <path d="M150 132 c10 5 10 14 0 14" stroke="#ffb020"/>
+    </g>
+    <g fill="#7d97aa" font-size="9.5" font-family="monospace">
+      <text x="170" y="52">chumbada corrediça</text><text x="170" y="74">conta</text>
+      <text x="170" y="90">girador</text><text x="170" y="140">empate + anzol</text></g></svg>`},
+ {nome:'Pernada única longa', quando:'Arremesso mais longo e isca mais natural na água. Uma isca só, bem apresentada. Bom para robalo e para praia com arrebentação forte.',
+  como:['Chumbada na ponta.',
+        'Uma pernada só, de 40 a 80 cm, saindo bem acima da chumbada.',
+        'Se embolar no arremesso, encurte a pernada ou use um tubo anti-tangle.'],
+  svg:`<svg viewBox="0 0 300 150" aria-label="Esquema da montagem de pernada única longa">
+    <g stroke="#35c4ff" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <path d="M150 6 L150 126"/>
+      <path d="M150 40 C186 56 196 82 192 104" stroke="#35c4ff"/>
+      <path d="M192 104 c9 5 9 13 0 13" stroke="#ffb020"/>
+      <path d="M150 126 l-9 12 h18 z" fill="#7d97aa" stroke="#7d97aa"/>
+    </g>
+    <g fill="#7d97aa" font-size="9.5" font-family="monospace">
+      <text x="196" y="86">pernada longa</text><text x="112" y="146">chumbada</text></g></svg>`}
+];
+
+const ESPECIES = [
+ ['Robalo (flecha e peva)','camarão vivo, tainha pequena, isca artificial','2/0 a 5/0','Procura vala funda, desembocadura e água revolvida. Costuma responder bem no início e no fim do dia.'],
+ ['Pampo','tatuíra (marisco branco), camarão','1 a 1/0','Come rente à arrebentação, muitas vezes a poucos metros. Anzol pequeno faz diferença.'],
+ ['Papa-terra / betara','camarão, minhoca-do-mar','2 a 1/0','Peixe de fundo arenoso, gosta de vala. Boca pequena — anzol menor melhora a fisgada.'],
+ ['Corvina','camarão, sardinha em posta','1/0 a 3/0','Anda em cardume; achou um, costuma vir mais. Ativa no fim da tarde e à noite.'],
+ ['Guaivira','isca cortada, artificial de metal','1/0 a 3/0','Tem dentes: use empate mais resistente. Ataca isca em movimento.'],
+ ['Anchova / enchova','isca cortada, artificial','2/0 a 4/0','Dentes afiados, corta linha fina. Empate de fluorcarbono grosso ou aço.'],
+ ['Sargo-de-dente','marisco, caranguejo pequeno','1 a 2/0','Fica junto a pedra e costão, não em areia lisa.'],
+ ['Bagre','camarão, sardinha','1/0 a 3/0','Cuidado ao manusear: o ferrão machuca feio. Use alicate e não segure com a mão nua.']
+];
+
+function desenharGuia(){
+  $('tela-guia').innerHTML = `
+    <div class="card">
+      <div class="rot">NÓS</div>
+      <div class="sub">Desenhos esquemáticos: mostram a sequência, não o aspecto do nó já apertado.
+        Treine em casa, com linha grossa, até sair no escuro.</div>
+      ${NOS.map(n=>`<div class="no">
+        <h4>${esc(n.nome)}</h4>
+        <div class="sub">${esc(n.para)}</div>
+        ${n.svg}
+        <ol class="expl" style="padding-left:18px;margin:4px 0 0">${n.passos.map(p=>`<li>${esc(p)}</li>`).join('')}</ol>
+      </div>`).join('')}
+      <div class="aviso"><b>Molhe o nó antes de apertar.</b> Apertar a seco esquenta o
+        monofilamento e ele arrebenta com menos da metade da carga. E corte a sobra deixando 1 a 2 mm,
+        nunca rente ao nó.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">MONTAGENS DE ARREMESSO DE PRAIA</div>
+      ${MONTAGENS.map(m=>`<div class="no">
+        <h4>${esc(m.nome)}</h4>
+        <div class="sub">${esc(m.quando)}</div>
+        ${m.svg}
+        <ul class="expl" style="padding-left:18px;margin:4px 0 0">${m.como.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>
+      </div>`).join('')}
+      <div class="nota">Peso da chumbada: o suficiente para segurar no fundo com a correnteza do dia, e
+        nada além disso. Chumbada pesada demais arremessa pior, marca menos a batida e cansa você.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">COMO LER UMA PRAIA</div>
+      <svg viewBox="0 0 320 130" aria-label="Corte esquemático de uma praia com banco, vala e arrebentação">
+        <path d="M0 96 L60 96 C100 96 108 74 150 74 C186 74 196 96 232 96 C268 96 288 84 320 84"
+              fill="none" stroke="#7d97aa" stroke-width="2.4"/>
+        <path d="M0 60 L320 60" stroke="#35c4ff" stroke-width="1.4" stroke-dasharray="5 5"/>
+        <path d="M118 58 q8 -9 16 0 M170 58 q8 -9 16 0 M226 56 q8 -9 16 0" stroke="#35c4ff" fill="none" stroke-width="2"/>
+        <g fill="#7d97aa" font-size="9.5" font-family="monospace">
+          <text x="6" y="112">areia seca</text><text x="70" y="112">vala</text>
+          <text x="134" y="70">banco</text><text x="206" y="112">vala funda</text>
+          <text x="252" y="52">arrebentação</text></g>
+      </svg>
+      <div class="expl">
+        <p><b>Vá na maré baixa antes de pescar.</b> Com a água recuada o desenho do fundo fica exposto e
+        você guarda o mapa na cabeça para a maré cheia, quando não dá para ver nada.</p>
+        <ul>
+          <li><b>Vala</b> — faixa mais funda paralela à praia. Na água, aparece mais escura e sem
+            arrebentação. É corredor de trânsito e de alimentação; é ali que a maioria dos peixes de
+            praia anda.</li>
+          <li><b>Banco</b> — elevação de areia onde a onda quebra. A onda quebrando marca o banco; a
+            água lisa logo depois marca a vala atrás dele.</li>
+          <li><b>Corrente de retorno</b> — a água que entrou precisa voltar, e volta por um canal.
+            Vê-se como faixa de água mais escura, revolta e com espuma saindo para o mar. Concentra
+            comida e peixe.</li>
+          <li><b>Ponta, costão e pedra</b> — quebram a corrente e criam remanso. Pescar na borda do
+            remanso, não no meio dele.</li>
+          <li><b>Desembocadura</b> — rio ou canal saindo na praia leva alimento e muda a salinidade.
+            Ponto clássico de robalo, sobretudo na vazante.</li>
+        </ul>
+      </div>
+      <div class="perigo"><b>A corrente de retorno é o que afoga gente na praia.</b> Ela é ótima para
+        pescar da margem e péssima para entrar. Se for arrastado, não nade contra: nade paralelo à praia
+        até sair do canal e só então volte. Nunca entre na água à noite, sozinho, ou com mar grande —
+        nenhum peixe vale isso.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">ESPÉCIES COMUNS DE PRAIA</div>
+      <table class="t">
+        <tr><th>ESPÉCIE</th><th>ISCA USUAL</th><th>ANZOL</th></tr>
+        ${ESPECIES.map(e=>`<tr><td><b>${esc(e[0])}</b><div class="sub">${esc(e[3])}</div></td>
+          <td>${esc(e[1])}</td><td>${esc(e[2])}</td></tr>`).join('')}
+      </table>
+      <div class="aviso"><b>Nomes populares variam muito por região</b> — o mesmo peixe muda de nome de
+        um estado para outro, e nomes iguais designam espécies diferentes. As iscas e numerações acima
+        são prática corrente entre pescadores de praia, <b>não</b> regra oficial nem recomendação
+        técnica com respaldo de pesquisa. Trate como ponto de partida e ajuste pelo seu diário.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">LICENÇA E DEFESO</div>
+      <div class="expl">
+        <p><b>Licença de pesca amadora.</b> No Brasil a pesca amadora exige licença federal, emitida
+        pelo órgão responsável pela pesca — hoje o Ministério da Pesca e Aquicultura. Há hipóteses de
+        isenção previstas em norma, e tanto o valor quanto as regras de isenção mudam ao longo do tempo.
+        Emita ou confira a sua no portal oficial antes de ir.</p>
+        <p><b>Defeso e tamanhos mínimos.</b> Existem períodos de defeso e tamanhos mínimos de captura, e
+        eles <b>variam por espécie, por região e por ano</b>.</p>
+      </div>
+      <div class="perigo"><b>Este app não lista datas de defeso nem tamanhos mínimos — de propósito.</b>
+        Publicar aqui um número desatualizado seria pior que não publicar nada: você levaria multa
+        confiando no app. Consulte a fonte oficial na semana da pescaria, não uma vez por ano.</div>
+      <div class="linha-btn">
+        <a class="btn mini" style="text-decoration:none;text-align:center" target="_blank" rel="noopener"
+           href="https://www.gov.br/mpa/pt-br">Ministério da Pesca ↗</a>
+        <a class="btn mini" style="text-decoration:none;text-align:center" target="_blank" rel="noopener"
+           href="https://www.gov.br/ibama/pt-br">IBAMA ↗</a>
+      </div>
+      <div class="sub" style="margin-top:9px">Procure por “licença de pesca amadora” e por “defeso” com
+        o nome do seu estado. Órgãos estaduais de meio ambiente também publicam regras próprias.</div>
+    </div>
+
+    <div class="card">
+      <div class="rot">DE ONDE VÊM OS DADOS DESTE APP</div>
+      <div class="expl">
+        <ul>
+          <li><b>Vento, rajada, direção, pressão, nuvens, chuva e temperatura</b> — Open-Meteo
+            (<code>api.open-meteo.com</code>), grátis e sem chave. Alcance de ${MAX_DIAS_API} dias.</li>
+          <li><b>Onda, período, direção da onda, temperatura da água e nível do mar</b> — Open-Meteo
+            Marine (<code>marine-api.open-meteo.com</code>). Mesmo alcance.</li>
+          <li><b>Sol e lua</b> — calculados dentro do próprio app, sem internet. Sol pela série de baixa
+            precisão do Astronomical Almanac; lua por série truncada de Meeus. Erro de poucos minutos
+            no nascer e pôr.</li>
+          <li><b>Maré</b> — o app usa o nível do mar modelado da Open-Meteo para saber o movimento da
+            água. <b>Não existe API pública e gratuita da tábua oficial brasileira</b>: o site da
+            Marinha não permite acesso automático. Por isso a tábua oficial entra digitada por você,
+            e quando você digita, ela tem prioridade sobre o modelo.</li>
+          <li><b>Mapa</b> — Leaflet com blocos do OpenStreetMap. Precisa de internet; o resto do app
+            não.</li>
+          <li><b>Seus pontos, pescarias, tralha e fotos</b> — ficam apenas neste aparelho, no
+            armazenamento do navegador. Nada é enviado para servidor nenhum.</li>
+        </ul>
+        <p class="sub">Nenhum ponto de pesca vem de fábrica neste app. Se há um pino no mapa, foi você
+        que marcou. Não existe base de “bons pontos” inventada por mim.</p>
+      </div>
+      <button class="btn" id="g-export">Exportar meus dados (JSON)</button>
+      <button class="btn perigo2" id="g-zerar">Apagar tudo deste aparelho</button>
+    </div>`;
+
+  $('g-export').onclick = () => {
+    const blob = new Blob([JSON.stringify({CFG,PONTOS,PESCARIAS,TRALHA,MARES,PESOS},null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='pescaria-do-joao.json'; a.click();
+  };
+  $('g-zerar').onclick = () => {
+    if(!confirm('Apagar pontos, pescarias, tralha e marés deste aparelho? Não dá para desfazer.')) return;
+    ['pk_cfg','pk_pontos','pk_pescarias','pk_tralha','pk_mares','pk_pesos'].forEach(k=>localStorage.removeItem(k));
+    location.reload();
+  };
+}
+
+/* =====================================================================
+   10. NAVEGAÇÃO E ARRANQUE
+   ===================================================================== */
+function render(){
+  if(abaAtual==='previsao')  desenharPrevisao();
+  if(abaAtual==='pescarias') desenharPescarias();
+  if(abaAtual==='tralha')    desenharTralha();
+  if(abaAtual==='guia')      desenharGuia();
+}
+function irPara(t){
+  abaAtual=t;
+  document.querySelectorAll('.abas button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  document.querySelectorAll('.tela').forEach(x=>x.classList.remove('on'));
+  $('tela-'+t).classList.add('on');
+  render(); window.scrollTo(0,0);
+}
+document.querySelectorAll('.abas button').forEach(b=> b.onclick = ()=> irPara(b.dataset.t));
+
+(async function inicio(){
+  atualizarTopo();
+  if(temLocal()){
+    const r = await carregarDados(CFG.lat, CFG.lon, false);
+    calibrar();
+    if(r.origem==='cache-velho') toast('Sem internet: mostrando a última previsão salva.',4500);
+    if(r.origem==='falhou')      toast('Sem previsão: sem internet e sem dados salvos.',4500);
+  }
+  render();
+})();
+
+</script>
+</body>
+</html>
