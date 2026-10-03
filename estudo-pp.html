@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070b0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Estudo PP">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/estudo-pp.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icons/estudo-pp.png">
 <title>Estudo PP — Banca ANAC (PPA)</title>
 <style>
 /* =====================================================================
@@ -31,7 +37,8 @@ button{font-family:var(--mono);cursor:pointer}
 /* ---------- topo ---------- */
 .topo{
   position:sticky;top:0;z-index:20;background:rgba(14,21,28,.96);
-  backdrop-filter:blur(8px);border-bottom:1px solid var(--linha);padding:10px 14px;
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--linha);
+  padding:calc(10px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-left)) 10px max(14px,env(safe-area-inset-right));
 }
 .topo-l1{display:flex;align-items:center;gap:10px}
 .marca{font-size:13px;letter-spacing:2.5px;color:var(--ciano);font-weight:700}

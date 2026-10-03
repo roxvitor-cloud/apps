@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1317" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Matriz">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/matriz.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icons/matriz.png">
 <meta name="description" content="Matriz de processos por etapa produtiva de oleo e gas onshore de campo maduro. Consulta por sintoma.">
 <title>Matriz de Processos — E&amp;P Onshore</title>
 <style>
@@ -22,7 +30,7 @@ body{margin:0;background:var(--bg);color:var(--fg);
  font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
  padding-bottom:4rem}
 header{position:sticky;top:0;z-index:20;background:var(--card);
- border-bottom:1px solid var(--line);padding:.55rem .8rem calc(.55rem + env(safe-area-inset-bottom,0));
+ border-bottom:1px solid var(--line);padding:calc(.55rem + env(safe-area-inset-top,0)) .8rem .55rem;
  padding-left:max(.8rem,env(safe-area-inset-left));padding-right:max(.8rem,env(safe-area-inset-right))}
 .hwrap{max-width:var(--max);margin:0 auto}
 .brand{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.4rem}
